@@ -1,0 +1,74 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+version: "2"
+language: "en-US"
+tone_instructions: "Provide rigorous, actionable, engineering-focused reviews with clear code snippets. Prioritize performance in high-frequency rendering and AR loops, strict null-safety, memory leak prevention (timer/animation controller disposals), and data correctness in physical unit conversions."
+
+reviews:
+  profile: "assertive"
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  auto_review:
+    enabled: true
+    drafts: true
+    base_branches:
+      - "master"
+      - "main"
+      - "develop"
+
+  path_filters:
+    - "!node_modules/**"
+    - "!.agent/**"
+    - "!.agents/**"
+    - "!build/**"
+    - "!.dart_tool/**"
+    - "!**/*.png"
+    - "!**/*.jpg"
+    - "!**/*.webp"
+
+  path_instructions:
+    # Flutter / Dart General Standards
+    - path: "lib/**"
+      instructions: |
+        - Verify 100% sound null-safety compliance. Flag any risky `!` non-null assertion operators.
+        - Ensure Flutter widgets follow best practices: avoid deep widget nesting without abstraction, use `const` constructors where possible.
+        - Ensure state management with ChangeNotifier avoids notifyListeners() calls during build cycles.
+        - Validate that all Theme tokens adhere to OriginOS glassmorphic guidelines (deep space dark #0A0A0F, proper blur and opacities).
+
+    # AR & Camera-Handling Code Paths (High Priority / High Failure-Risk)
+    - path: "lib/features/scan_room/**"
+      instructions: |
+        - HIGH PRIORITY: Inspect camera lifecycle management.
+        - Ensure all Timers and AnimationControllers are unconditionally cancelled and disposed in dispose().
+        - Check for memory leaks in mesh accumulation and point cloud vertex caching.
+        - Validate that coordinate transforms from 2D viewport coordinates to 3D room coordinates do not divide by zero or allow NaN coordinates.
+        - Check error handling for AR tracking loss, camera permission denials, or sensor degradation.
+
+    - path: "lib/features/offline_shopping/presentation/in_store_camera_screen.dart"
+      instructions: |
+        - HIGH PRIORITY: Inspect in-store camera capture and orbit guidance.
+        - Ensure Timer _orbitTimer and AnimationController _orbitController are properly cleaned up in dispose().
+        - Ensure state updates during camera frame stream check `mounted` before calling setState().
+        - Validate dimension estimation math against negative or zero-scale values.
+
+    # 3D Placement & Collision Math
+    - path: "lib/features/fit_check/**"
+      instructions: |
+        - Inspect CustomPainter implementations (`RoomCanvas3DPainter`). Ensure `shouldRepaint` correctly checks all geometry dependencies to avoid unnecessary redraws.
+        - Verify bounding box collision calculations in `FitEngine.evaluate()`: ensure polygon clipping and clearance distances in inches handle edge cases (e.g. rotation angles near 0, 90, 180, 270, 360 degrees).
+        - Ensure obstruction reasons are descriptive and never null when status is wontFit.
+
+    # Python / FastAPI Backend Services (Catalog, Link Parser, Re-localization)
+    - path: "**/*.py"
+      instructions: |
+        - Enforce Python 3.10+ typing (`typing` / Pydantic models).
+        - Ensure FastAPI endpoints validate all incoming URL parameters and request bodies.
+        - Flag unhandled network timeouts, missing rate limits, and injection vulnerabilities in product scrapers.
+        - Verify async/await coroutine safety and thread-pool execution for blocking I/O.
+
+tools:
+  shellcheck:
+    enabled: true
+  markdownlint:
+    enabled: true

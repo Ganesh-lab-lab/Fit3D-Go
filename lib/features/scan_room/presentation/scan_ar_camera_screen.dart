@@ -61,6 +61,7 @@ class _ScanArCameraScreenState extends State<ScanArCameraScreen>
   }
 
   void _onTapViewport(TapUpDetails details, Size size) {
+    if (size.width <= 0 || size.height <= 0) return;
     // Determine closest wall based on tap position
     final relX = details.localPosition.dx / size.width;
     final relY = details.localPosition.dy / size.height;

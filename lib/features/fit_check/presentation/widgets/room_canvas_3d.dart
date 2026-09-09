@@ -33,7 +33,7 @@ class RoomCanvas3D extends StatelessWidget {
       onPanUpdate: (details) {
         // Convert screen drag delta into normalized room coordinate delta
         final box = context.findRenderObject() as RenderBox?;
-        if (box == null) return;
+        if (box == null || box.size.width <= 0 || box.size.height <= 0) return;
         final size = box.size;
 
         // Perspective mapping scale factor

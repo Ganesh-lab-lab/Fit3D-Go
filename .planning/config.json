@@ -1,0 +1,9 @@
+{
+  "mode": "interactive",
+  "runtime": "antigravity",
+  "commit_docs": true,
+  "branching": "trunk",
+  "hooks": {
+    "workflow_guard": true
+  }
+}

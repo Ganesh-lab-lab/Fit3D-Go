@@ -9,10 +9,9 @@
 [Phase 4: My Home Saved Rooms Library]      ==== COMPLETE (Prompt 3)
 [Phase 5: Online Product Mode & 3D Proxy]   ==== COMPLETE (Prompt 4)
 [Phase 6: 3D Placement Viewer & Collision]  ==== COMPLETE (Prompt 8)
-────────────────────────────────────────────────────────────────────────
-[Phase 7: Barcode / QR Lookup & Confidence] ===> IN PROGRESS (Prompt 5 & 6)
-[Phase 8: Fast In-Store Camera Capture]     ===> UPCOMING (Prompt 7)
-[Phase 9: Wishlist & Saved Fit-Checks]      ===> UPCOMING (Prompt 9)
+[Phase 7: Barcode / QR Lookup & Confidence] ==== COMPLETE (Prompts 5 & 6)
+[Phase 8: Fast In-Store Camera Capture]     ==== COMPLETE (Prompt 7)
+[Phase 9: Wishlist & Saved Fit-Checks]      ==== COMPLETE (Prompt 9)
 ```
 
 ---

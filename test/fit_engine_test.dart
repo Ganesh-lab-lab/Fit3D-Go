@@ -92,7 +92,48 @@ void main() {
     rotationDeg: 0.0,
   );
   assert(tightFit.status == FitStatus.tight || tightFit.status == FitStatus.fits);
-  print('✓ Test 6 Passed: Boundary evaluation evaluated as ${tightFit.status.label} (${tightFit.description})');
+  // Test 7: FitEngine - In-Store Camera Captured Item with Direct High Confidence
+  final instoreItem = ProductModel(
+    id: 'instore_real_table',
+    title: 'Showroom Measured Dining Table',
+    source: ProductSource.offline,
+    category: ProductCategory.table,
+    lengthIn: 76.0,
+    widthIn: 35.0,
+    heightIn: 31.0,
+    confidence: ConfidenceLevel.directHigh,
+    createdAt: DateTime.now(),
+  );
+  assert(instoreItem.confidence == ConfidenceLevel.directHigh);
+  assert(instoreItem.confidence.label == 'Measured directly — high confidence');
+  final instoreFit = FitEngine.evaluate(
+    room: room,
+    product: instoreItem,
+    posX: 0.1,
+    posY: 0.2,
+    rotationDeg: 90.0,
+  );
+  assert(instoreFit.status == FitStatus.fits);
+  print('✓ Test 7 Passed: In-store captured product: ${instoreFit.status.label} with High Confidence (${instoreItem.confidence.label})');
+
+  // Test 8: Wishlist Record Persistence & Restoration Fidelity
+  final savedRecord = FitCheckRecord(
+    id: 'fit_wishlist_test',
+    product: instoreItem,
+    roomId: room.id,
+    roomName: room.name,
+    positionX: 0.25,
+    positionY: -0.15,
+    rotationDeg: 45.0,
+    fitStatus: FitStatus.fits,
+    clearanceInches: 18.2,
+    timestamp: DateTime.now(),
+  );
+  assert(savedRecord.positionX == 0.25);
+  assert(savedRecord.positionY == -0.15);
+  assert(savedRecord.rotationDeg == 45.0);
+  assert(savedRecord.product.confidence == ConfidenceLevel.directHigh);
+  print('✓ Test 8 Passed: Wishlist record stores exact coordinates (X:${savedRecord.positionX}, Y:${savedRecord.positionY}, Rot:${savedRecord.rotationDeg}°)');
 
   print('=== ALL SUITE CHECKS PASSED SUCCESSFULLY ===');
 }

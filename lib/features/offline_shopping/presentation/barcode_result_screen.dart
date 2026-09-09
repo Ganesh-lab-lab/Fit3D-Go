@@ -8,7 +8,7 @@ import '../../../core/theme/glass_card.dart';
 import '../../../core/theme/page_transitions.dart';
 import '../../../core/widgets/proxy_shape_3d.dart';
 import '../../fit_check/presentation/placement_viewer_screen.dart';
-import 'in_store_camera_screen.dart';
+import '../../instore_capture/presentation/instore_capture_screen.dart';
 
 class BarcodeResultScreen extends StatelessWidget {
   final RoomFitState state;
@@ -85,7 +85,7 @@ class BarcodeResultScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context).push(
                       GlassPageRoute(
-                        page: InStoreCameraScreen(
+                        page: InStoreCaptureScreen(
                           state: state,
                           prefillCategory: matchedProduct!.category,
                         ),
@@ -120,7 +120,7 @@ class BarcodeResultScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context).pushReplacement(
                       GlassPageRoute(
-                        page: InStoreCameraScreen(state: state),
+                        page: InStoreCaptureScreen(state: state),
                       ),
                     );
                   },

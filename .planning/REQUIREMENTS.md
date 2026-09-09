@@ -56,14 +56,14 @@
   - Header: "No dimensions found for this barcode".
   - Primary CTA: Prominent "Scan with Camera Instead".
 
-### Phase 8: Fast In-Store Camera Capture
-- [ ] **REQ-8.1**: Full-screen camera viewfinder with 180° close orbit guide overlay.
-- [ ] **REQ-8.2**: Coverage percentage indicator and "Quick scan: walk halfway around the item" copy.
-- [ ] **REQ-8.3**: Capture button, cancel control, and animated "Estimating size..." loading state.
-- [ ] **REQ-8.4**: Confirm-dimensions sheet with editable L/W/H fields and "Measured directly — high confidence" badge.
+### Phase 8: Fast In-Store Camera Capture (Completed)
+- [x] **REQ-8.1**: Full-screen camera viewfinder with 180° close orbit guide overlay.
+- [x] **REQ-8.2**: Coverage percentage indicator and "Quick scan: walk halfway around the item" copy.
+- [x] **REQ-8.3**: Capture button, cancel control, and animated "Estimating size..." loading state.
+- [x] **REQ-8.4**: Confirm-dimensions sheet with editable L/W/H fields and "Measured directly — high confidence" badge.
 
-### Phase 9: Wishlist & Saved Fit-Checks Library
-- [ ] **REQ-9.1**: Saved fit-check glass cards with 3D thumbnail, source tag (Online/Offline), fit badge, confidence indicator, room, and date.
-- [ ] **REQ-9.2**: Filter row by fit result (All, Fits, Tight, Won't Fit).
-- [ ] **REQ-9.3**: Filter row by room (All Rooms, individual scanned rooms).
-- [ ] **REQ-9.4**: Tapping any card reopens the 3D Placement Viewer at the exact saved coordinates and rotation.
+### Phase 9: Wishlist & Saved Fit-Checks Library (Completed)
+- [x] **REQ-9.1**: Saved fit-check glass cards with 3D thumbnail, source tag (Online/Offline), fit badge, confidence indicator, room, and date.
+- [x] **REQ-9.2**: Filter row by fit result (All, Fits, Tight, Won't Fit).
+- [x] **REQ-9.3**: Filter row by room (All Rooms, individual scanned rooms).
+- [x] **REQ-9.4**: Tapping any card reopens the 3D Placement Viewer at the exact saved coordinates and rotation.

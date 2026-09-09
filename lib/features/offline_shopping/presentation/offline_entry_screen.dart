@@ -5,7 +5,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/glass_card.dart';
 import '../../../core/theme/page_transitions.dart';
 import 'barcode_scanner_screen.dart';
-import 'in_store_camera_screen.dart';
+import '../../instore_capture/presentation/instore_capture_screen.dart';
 
 class OfflineEntryScreen extends StatelessWidget {
   final RoomFitState state;
@@ -113,7 +113,7 @@ class OfflineEntryScreen extends StatelessWidget {
                 onTap: () {
                   Navigator.of(context).push(
                     GlassPageRoute(
-                      page: InStoreCameraScreen(state: state),
+                      page: InStoreCaptureScreen(state: state),
                     ),
                   );
                 },

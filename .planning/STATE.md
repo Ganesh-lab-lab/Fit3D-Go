@@ -1,9 +1,9 @@
 # Project State & Memory
 
 ## Current Position
-- **Active Phase**: Phase 7 (Barcode / QR Lookup with Confidence Flagging)
+- **Active Phase**: Phase 8 (Fast In-Store Camera Capture)
 - **Status**: Ready to Plan & Execute
-- **Last Completed**: Codebase mapping & Retrofit of initial baseline (Phases 1–6)
+- **Last Completed**: Phase 7 (Barcode / QR Lookup with Confidence Flagging)
 
 ## Phase Summary
 | Phase | Description | Status |
@@ -14,8 +14,8 @@
 | Phase 4 | My Home Saved Rooms Library | ✅ Complete |
 | Phase 5 | Online Shopping Product Check | ✅ Complete |
 | Phase 6 | 3D Placement Viewer & Collision Engine | ✅ Complete |
-| Phase 7 | Barcode / QR Lookup with Confidence Flagging | 🟡 Active |
-| Phase 8 | Fast In-Store Camera Capture | ⚪ Pending |
+| Phase 7 | Barcode / QR Lookup with Confidence Flagging | ✅ Complete |
+| Phase 8 | Fast In-Store Camera Capture | 🟡 Next Up |
 | Phase 9 | Wishlist & Saved Fit-Checks Library | ⚪ Pending |
 
 ## Session Context

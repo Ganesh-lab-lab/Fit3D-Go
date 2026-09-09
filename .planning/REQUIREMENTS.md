@@ -45,14 +45,14 @@
 
 ---
 
-### Phase 7: Barcode / QR Lookup with Confidence Flagging (Next Priority)
-- [ ] **REQ-7.1**: Entry choice screen with "Scan Barcode / QR" and "Scan with Camera", plus packaging advisory note.
-- [ ] **REQ-7.2**: Real-time barcode/QR scanner viewfinder with reticle, flash toggle, and mock barcode triggers.
-- [ ] **REQ-7.3**: Amber Confidence Banner for packaging-sourced data on furniture items:
+### Phase 7: Barcode / QR Lookup with Confidence Flagging (Completed)
+- [x] **REQ-7.1**: Entry choice screen with "Scan Barcode / QR" and "Scan with Camera", plus packaging advisory note.
+- [x] **REQ-7.2**: Real-time barcode/QR scanner viewfinder with reticle, flash toggle, and mock barcode triggers.
+- [x] **REQ-7.3**: Amber Confidence Banner for packaging-sourced data on furniture items:
   - Header: "May be packaging size — confirm with camera scan?"
   - Primary CTA: "Scan to Verify".
   - Secondary CTA: "Use these dimensions anyway".
-- [ ] **REQ-7.4**: Red No-Match Banner for unregistered barcodes:
+- [x] **REQ-7.4**: Red No-Match Banner for unregistered barcodes:
   - Header: "No dimensions found for this barcode".
   - Primary CTA: Prominent "Scan with Camera Instead".
 

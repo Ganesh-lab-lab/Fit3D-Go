@@ -1,0 +1,1889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RoomFit — OriginOS Glassmorphic Spatial Fit-Check</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-space: #0A0A0F;
+      --bg-surface: #101018;
+      --glass-fill: rgba(255, 255, 255, 0.08);
+      --glass-fill-medium: rgba(255, 255, 255, 0.12);
+      --glass-fill-elevated: rgba(255, 255, 255, 0.16);
+      --glass-border: rgba(255, 255, 255, 0.16);
+      --glass-border-glow: rgba(0, 240, 255, 0.4);
+      --cyan: #00F0FF;
+      --cyan-glow: rgba(0, 240, 255, 0.35);
+      --blue: #0066FF;
+      --purple: #9D4EDD;
+      --status-green: #00E676;
+      --status-green-bg: rgba(0, 230, 118, 0.16);
+      --status-amber: #FFB300;
+      --status-amber-bg: rgba(255, 179, 0, 0.18);
+      --status-red: #FF3B30;
+      --status-red-bg: rgba(255, 59, 48, 0.18);
+      --text-primary: #FFFFFF;
+      --text-secondary: #B0B6C8;
+      --text-tertiary: #6E758C;
+      --radius-sm: 12px;
+      --radius-md: 18px;
+      --radius-lg: 24px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-space);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(0, 240, 255, 0.07) 0%, transparent 45%),
+        radial-gradient(circle at 85% 85%, rgba(157, 78, 221, 0.08) 0%, transparent 45%);
+    }
+
+    /* Device Mockup Shell */
+    .app-viewport {
+      width: 420px;
+      height: 890px;
+      background-color: var(--bg-space);
+      border-radius: 46px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 32px 80px rgba(0, 0, 0, 0.8), 0 0 50px rgba(0, 240, 255, 0.12);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Top Dynamic Island / Status Bar */
+    .status-bar {
+      height: 44px;
+      padding: 10px 24px 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      z-index: 100;
+    }
+    .status-pill-island {
+      width: 110px;
+      height: 24px;
+      background: #000;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--cyan);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Top App Navigation Header */
+    .app-header {
+      padding: 8px 20px 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 90;
+    }
+    .header-logo-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-badge {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #001524;
+      font-size: 20px;
+      box-shadow: 0 4px 16px var(--cyan-glow);
+    }
+    .header-titles h1 {
+      font-size: 19px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+    }
+    .header-titles span {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    /* Screen Views Container */
+    .screens-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    .screen-view {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      padding: 4px 18px 94px 18px;
+      display: none;
+      flex-direction: column;
+      animation: fadeInBlur 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .screen-view.active {
+      display: flex;
+    }
+    @keyframes fadeInBlur {
+      0% { opacity: 0; transform: scale(0.98); filter: blur(8px); }
+      100% { opacity: 1; transform: scale(1); filter: blur(0); }
+    }
+
+    /* Glass Cards & Surfaces */
+    .glass-card {
+      background: var(--glass-fill);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      border: 1px solid var(--glass-border);
+      position: relative;
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .glass-card:hover {
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+    }
+    .glass-card:active {
+      transform: scale(0.98);
+    }
+
+    /* Glass Buttons */
+    .glass-btn {
+      height: 52px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      outline: none;
+      transition: all 0.16s ease;
+      text-decoration: none;
+    }
+    .glass-btn-primary {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.24), rgba(0, 102, 255, 0.18));
+      color: var(--cyan);
+      border: 1.5px solid var(--cyan);
+      box-shadow: 0 6px 24px rgba(0, 240, 255, 0.32);
+      backdrop-filter: blur(16px);
+    }
+    .glass-btn-primary:hover {
+      box-shadow: 0 8px 30px rgba(0, 240, 255, 0.5);
+    }
+    .glass-btn-secondary {
+      background: var(--glass-fill-medium);
+      color: var(--text-primary);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(16px);
+    }
+    .glass-btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+    .glass-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* Frosted Bottom Navigation Bar */
+    .glass-bottom-bar {
+      position: absolute;
+      bottom: 14px;
+      left: 16px;
+      right: 16px;
+      height: 70px;
+      background: rgba(18, 18, 28, 0.72);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(0, 240, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 8px;
+      z-index: 100;
+    }
+    .bottom-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      color: var(--text-tertiary);
+      font-size: 12px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+    .bottom-tab.active {
+      background: rgba(0, 240, 255, 0.16);
+      border: 1px solid rgba(0, 240, 255, 0.45);
+      color: var(--cyan);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
+    }
+
+    /* Badges & Status Pills */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 14px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+    .status-pill.fits {
+      background: var(--status-green-bg);
+      color: var(--status-green);
+      border: 1px solid rgba(0, 230, 118, 0.35);
+    }
+    .status-pill.tight {
+      background: var(--status-amber-bg);
+      color: var(--status-amber);
+      border: 1px solid rgba(255, 179, 0, 0.4);
+    }
+    .status-pill.wont-fit {
+      background: var(--status-red-bg);
+      color: var(--status-red);
+      border: 1px solid rgba(255, 59, 48, 0.4);
+    }
+
+    /* Two Shopping Cards (Prompt 1) */
+    .shopping-cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 18px 0;
+    }
+    .shopping-card {
+      height: 190px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .icon-box.cyan {
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid rgba(0, 240, 255, 0.4);
+      color: var(--cyan);
+    }
+    .icon-box.purple {
+      background: rgba(157, 78, 221, 0.16);
+      border: 1px solid rgba(157, 78, 221, 0.4);
+      color: #D08CFF;
+    }
+
+    /* 3D Placement Canvas Container */
+    .placement-viewport {
+      width: 100%;
+      height: 380px;
+      background: #0D0E15;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--glass-border);
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+    }
+    .placement-viewport:active {
+      cursor: grabbing;
+    }
+    #roomCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Input Fields */
+    .glass-input {
+      width: 100%;
+      height: 50px;
+      background: var(--glass-fill-medium);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-md);
+      padding: 0 16px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: border 0.2s;
+    }
+    .glass-input:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.25);
+    }
+
+    /* Sliders */
+    .glass-slider {
+      width: 100%;
+      accent-color: var(--cyan);
+      height: 6px;
+      border-radius: 4px;
+      outline: none;
+    }
+
+    /* AR Viewport Overlay */
+    .ar-viewport {
+      width: 100%;
+      height: 520px;
+      background: #08090C;
+      border-radius: var(--radius-lg);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+    }
+    #arCanvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Mobile Device Simulator Frame -->
+  <div class="app-viewport">
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span>9:41</span>
+      <div class="status-pill-island">
+        <span>● RoomFit AR</span>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <span>5G</span>
+        <span>100%</span>
+      </div>
+    </div>
+
+    <!-- Global App Header -->
+    <div class="app-header">
+      <div class="header-logo-group">
+        <div class="logo-badge">📐</div>
+        <div class="header-titles">
+          <h1>RoomFit</h1>
+          <span>OriginOS Spatial Theme</span>
+        </div>
+      </div>
+      <button class="glass-btn glass-btn-ghost" style="height: 36px; padding: 0 12px; font-size: 11px;" onclick="switchScreen('viewWishlist')">
+        Wishlist (<span id="wishlistCount">4</span>)
+      </button>
+    </div>
+
+    <!-- Screen Container -->
+    <div class="screens-container">
+
+      <!-- ============================================== -->
+      <!-- SCREEN 1: HOME PAGE (Prompt 1) -->
+      <!-- ============================================== -->
+      <div id="viewHome" class="screen-view active">
+        
+        <!-- Prompt 1: Top Status Card -->
+        <div class="glass-card" onclick="switchScreen('viewMyHome')" style="margin-top: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <div class="icon-box cyan" style="font-size: 20px;">🏠</div>
+              <div>
+                <h3 style="font-size: 17px; font-weight: 800;" id="homeStatusTitle">Your Home: 3 rooms scanned</h3>
+                <p style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">Spatial digital twins ready for instant fit testing</p>
+              </div>
+            </div>
+            <span style="color: var(--text-tertiary); font-size: 18px;">›</span>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap;">
+            <span class="status-pill" style="background: rgba(255,255,255,0.08); color: #fff; border-color: rgba(255,255,255,0.15); font-size: 10px;">
+              🛋️ Living Room • 16.5' x 14.0'
+            </span>
+            <span class="status-pill" style="background: rgba(255,255,255,0.08); color: #fff; border-color: rgba(255,255,255,0.15); font-size: 10px;">
+              🛏️ Bedroom • 13.0' x 11.5'
+            </span>
+            <span class="status-pill" style="background: rgba(255,255,255,0.08); color: #fff; border-color: rgba(255,255,255,0.15); font-size: 10px;">
+              💼 Study • 11.0' x 9.5'
+            </span>
+          </div>
+        </div>
+
+        <!-- Prompt 1: Two Large Equal Glass Cards -->
+        <div class="shopping-cards-grid">
+          <!-- Card 1: Online Shopping -->
+          <div class="glass-card shopping-card" onclick="switchScreen('viewOnline')">
+            <div class="icon-box cyan">🛍️</div>
+            <div>
+              <h4 style="font-size: 16px; font-weight: 800;">Online Shopping</h4>
+              <p style="font-size: 11px; color: var(--text-secondary); margin-top: 6px; line-height: 1.35;">
+                Check if a product fits using its listed measurements
+              </p>
+            </div>
+            <span style="color: var(--cyan); font-size: 11px; font-weight: 700;">Paste Link or Specs →</span>
+          </div>
+
+          <!-- Card 2: Offline Shopping -->
+          <div class="glass-card shopping-card" onclick="switchScreen('viewOfflineEntry')">
+            <div class="icon-box purple">📷</div>
+            <div>
+              <h4 style="font-size: 16px; font-weight: 800;">Offline Shopping</h4>
+              <p style="font-size: 11px; color: var(--text-secondary); margin-top: 6px; line-height: 1.35;">
+                Scan a product in-store to check if it fits
+              </p>
+            </div>
+            <span style="color: #D08CFF; font-size: 11px; font-weight: 700;">Scan Barcode or AR →</span>
+          </div>
+        </div>
+
+        <!-- Quick Access Section -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 12px 0 10px 0;">
+          <h3 style="font-size: 15px; font-weight: 700;">Recent Spatial Fits</h3>
+          <span style="font-size: 12px; color: var(--cyan); cursor: pointer; font-weight: 600;" onclick="switchScreen('viewWishlist')">View All</span>
+        </div>
+
+        <!-- Recent Fit Items -->
+        <div class="glass-card" style="padding: 12px; margin-bottom: 10px;" onclick="loadAndOpenViewer('Kivik 3-Seat Sofa', 'Living Room', 90, 38, 33, 'sofa', 0.1, 0.2, 0)">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <span style="font-size: 26px;">🛋️</span>
+              <div>
+                <h4 style="font-size: 14px; font-weight: 700;">Kivik 3-Seat Sofa</h4>
+                <p style="font-size: 11px; color: var(--text-tertiary);">in Living Room • 90"L x 38"W x 33"H</p>
+              </div>
+            </div>
+            <span class="status-pill fits">Fits</span>
+          </div>
+        </div>
+
+        <div class="glass-card" style="padding: 12px;" onclick="loadAndOpenViewer('Oak Dining Table', 'Living Room', 72, 36, 30, 'table', -0.4, 0.35, 90)">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <span style="font-size: 26px;">🪑</span>
+              <div>
+                <h4 style="font-size: 14px; font-weight: 700;">Oak Dining Table</h4>
+                <p style="font-size: 11px; color: var(--text-tertiary);">in Living Room • 72"L x 36"W x 30"H</p>
+              </div>
+            </div>
+            <span class="status-pill tight">Tight</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 2: SCAN INTRO (Prompt 2 Screen 1) -->
+      <!-- ============================================== -->
+      <div id="viewScanIntro" class="screen-view">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+          <button class="glass-btn glass-btn-ghost" style="width: 36px; height: 36px; border-radius: 50%; padding: 0;" onclick="switchScreen('viewHome')">←</button>
+          <h2 style="font-size: 18px; font-weight: 800;">Spatial Room Scan</h2>
+        </div>
+
+        <div style="text-align: center; margin: 10px 0 20px 0;">
+          <h2 style="font-size: 24px; font-weight: 800; line-height: 1.25;">Scan each room once —<br><span style="color: var(--cyan)">we'll remember it</span></h2>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+            Walk around your room with your phone to construct an ultra-precise 3D floor plan.
+          </p>
+        </div>
+
+        <!-- Animated Walking Diagram -->
+        <div class="glass-card" style="height: 280px; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+          <canvas id="diagramCanvas" width="360" height="260"></canvas>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="icon-box cyan" style="width: 38px; height: 38px; font-size: 18px;">🚶</div>
+            <div>
+              <h5 style="font-size: 13px; font-weight: 700;">Walk the room perimeter</h5>
+              <p style="font-size: 11px; color: var(--text-secondary);">Slowly trace along each wall at normal walking pace</p>
+            </div>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="icon-box cyan" style="width: 38px; height: 38px; font-size: 18px;">🚪</div>
+            <div>
+              <h5 style="font-size: 13px; font-weight: 700;">Tap to tag doorways</h5>
+              <p style="font-size: 11px; color: var(--text-secondary);">Mark entrances so furniture never blocks hallway access</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: auto; padding-top: 20px;">
+          <button class="glass-btn glass-btn-primary" style="width: 100%;" onclick="startArScanning()">
+            Start AR Scan
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 3: AR LIVE SCAN (Prompt 2 Screen 2) -->
+      <!-- ============================================== -->
+      <div id="viewArScan" class="screen-view">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <button class="glass-btn glass-btn-ghost" style="width: 36px; height: 36px; border-radius: 50%; padding: 0;" onclick="switchScreen('viewScanIntro')">✕</button>
+          <span class="status-pill" style="background: rgba(0,0,0,0.6); border-color: var(--cyan); color: var(--cyan); font-size: 11px;">
+            ● ARKit / ARCore Live
+          </span>
+        </div>
+
+        <!-- Coverage Card -->
+        <div class="glass-card" style="padding: 12px 16px; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <h4 style="font-size: 14px; font-weight: 800;">Mesh Coverage: <span id="arCoverageText" style="color: var(--cyan)">24%</span></h4>
+              <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Estimated: 15.2ft x 13.8ft, 9ft ceiling</p>
+            </div>
+            <div style="width: 38px; height: 38px; border-radius: 50%; border: 3px solid var(--cyan); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800;">
+              <span id="arCoverageCircle">24%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- AR Viewport with Tap to Tag Prompt -->
+        <div class="ar-viewport" onclick="tagDoorwayAr(event)">
+          <canvas id="arCanvas"></canvas>
+          <div style="position: absolute; bottom: 20px; left: 20px; right: 20px; text-align: center;">
+            <div class="glass-card" style="display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; background: rgba(0,0,0,0.6);">
+              <span style="color: var(--status-amber); font-size: 16px;">👆</span>
+              <span style="font-size: 12px; font-weight: 600;">Tap perimeter to mark doorway location (<span id="taggedDoorsCount">1</span> marked)</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 16px;">
+          <button class="glass-btn glass-btn-primary" style="width: 100%;" onclick="finishArScan()">
+            Complete & Review Room
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 4: ROOM SUMMARY (Prompt 2 Screen 3) -->
+      <!-- ============================================== -->
+      <div id="viewRoomSummary" class="screen-view">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+          <button class="glass-btn glass-btn-ghost" style="width: 36px; height: 36px; border-radius: 50%; padding: 0;" onclick="switchScreen('viewArScan')">←</button>
+          <h2 style="font-size: 18px; font-weight: 800;">Room Summary</h2>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Room Name</label>
+          <input type="text" id="summaryRoomName" class="glass-input" value="Primary Living Room" style="margin-top: 6px;">
+        </div>
+
+        <!-- Detected Dimensions Display Card -->
+        <div class="glass-card" style="margin-bottom: 16px;">
+          <h4 style="font-size: 12px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px;">Detected Dimensions</h4>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+            <div>
+              <p style="font-size: 20px; font-weight: 800; color: var(--cyan);">16.5ft x 14.0ft</p>
+              <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Floor boundaries</p>
+            </div>
+            <div style="width: 1px; height: 36px; background: rgba(255,255,255,0.15);"></div>
+            <div>
+              <p style="font-size: 20px; font-weight: 800; color: var(--cyan);">9ft</p>
+              <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Ceiling Height</p>
+            </div>
+            <div style="width: 1px; height: 36px; background: rgba(255,255,255,0.15);"></div>
+            <div>
+              <p style="font-size: 20px; font-weight: 800; color: var(--cyan);">231 sq ft</p>
+              <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Total Footprint</p>
+            </div>
+          </div>
+          <div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 8px;">
+            <span style="color: var(--status-amber)">🚪</span>
+            <span style="font-size: 11px; color: var(--text-secondary);">2 Doorways registered for pass-through collision clearance</span>
+          </div>
+        </div>
+
+        <!-- 3D Room Mesh Preview -->
+        <div class="glass-card" style="height: 160px; position: relative; margin-bottom: 20px; display: flex; align-items: center; justify-content: center;">
+          <canvas id="summaryMiniCanvas" width="340" height="140"></canvas>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button class="glass-btn glass-btn-primary" onclick="saveRoomToLibrary(false)">
+            Save Room
+          </button>
+          <button class="glass-btn glass-btn-secondary" onclick="saveRoomToLibrary(true)">
+            + Add Another Room
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 5: MY HOME (Prompt 3) -->
+      <!-- ============================================== -->
+      <div id="viewMyHome" class="screen-view">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button class="glass-btn glass-btn-ghost" style="width: 36px; height: 36px; border-radius: 50%; padding: 0;" onclick="switchScreen('viewHome')">←</button>
+            <h2 style="font-size: 18px; font-weight: 800;">My Home Library</h2>
+          </div>
+          <span style="font-size: 12px; color: var(--cyan); font-weight: 700;">3 Rooms</span>
+        </div>
+
+        <div id="roomsListContainer" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Room Card 1 -->
+          <div class="glass-card" style="display: flex; gap: 14px; align-items: center;">
+            <div style="width: 76px; height: 76px; border-radius: 14px; background: #12131F; border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 28px;">
+              🛋️
+            </div>
+            <div style="flex: 1;">
+              <h4 style="font-size: 15px; font-weight: 800;">Living Room</h4>
+              <p style="font-size: 12px; color: var(--cyan); font-weight: 700; margin-top: 2px;">16.5ft x 14.0ft, 9ft ceiling</p>
+              <p style="font-size: 10px; color: var(--text-tertiary); margin-top: 4px;">Scanned 4 days ago • 2 doors</p>
+            </div>
+            <button class="glass-btn glass-btn-ghost" style="width: 40px; height: 40px; border-radius: 12px; padding: 0;" title="Rescan Room" onclick="switchScreen('viewArScan')">
+              🔄
+            </button>
+          </div>
+
+          <!-- Room Card 2 -->
+          <div class="glass-card" style="display: flex; gap: 14px; align-items: center;">
+            <div style="width: 76px; height: 76px; border-radius: 14px; background: #12131F; border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 28px;">
+              🛏️
+            </div>
+            <div style="flex: 1;">
+              <h4 style="font-size: 15px; font-weight: 800;">Primary Bedroom</h4>
+              <p style="font-size: 12px; color: var(--cyan); font-weight: 700; margin-top: 2px;">13.0ft x 11.5ft, 8.5ft ceiling</p>
+              <p style="font-size: 10px; color: var(--text-tertiary); margin-top: 4px;">Scanned 7 days ago • 1 door</p>
+            </div>
+            <button class="glass-btn glass-btn-ghost" style="width: 40px; height: 40px; border-radius: 12px; padding: 0;" title="Rescan Room" onclick="switchScreen('viewArScan')">
+              🔄
+            </button>
+          </div>
+
+          <!-- Room Card 3 -->
+          <div class="glass-card" style="display: flex; gap: 14px; align-items: center;">
+            <div style="width: 76px; height: 76px; border-radius: 14px; background: #12131F; border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 28px;">
+              💼
+            </div>
+            <div style="flex: 1;">
+              <h4 style="font-size: 15px; font-weight: 800;">Study / Home Office</h4>
+              <p style="font-size: 12px; color: var(--cyan); font-weight: 700; margin-top: 2px;">11.0ft x 9.5ft, 8.5ft ceiling</p>
+              <p style="font-size: 10px; color: var(--text-tertiary); margin-top: 4px;">Scanned 12 days ago • 1 door</p>
+            </div>
+            <button class="glass-btn glass-btn-ghost" style="width: 40px; height: 40px; border-radius: 12px; padding: 0;" title="Rescan Room" onclick="switchScreen('viewArScan')">
+              🔄
+            </button>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px;">
+          <button class="glass-btn glass-btn-primary" style="width: 100%;" onclick="switchScreen('viewScanIntro')">
+            + Add Room
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 6: ONLINE SHOPPING ADD (Prompt 4) -->
+      <!-- ============================================== -->
+      <div id="viewOnline" class="screen-view">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+          <button class="glass-btn glass-btn-ghost" style="width: 36px; height: 36px; border-radius: 50%; padding: 0;" onclick="switchScreen('viewHome')">←</button>
+          <h2 style="font-size: 18px; font-weight: 800;">Online Product Check</h2>
+        </div>
+
+        <!-- Paste Link input -->
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Paste Product Link</label>
+        <div style="display: flex; gap: 8px; margin-top: 6px; margin-bottom: 10px;">
+          <input type="text" id="onlineUrlInput" class="glass-input" placeholder="https://ikea.com/item/kivik-sofa..." value="https://ikea.com/us/en/p/kivik-sofa/">
+          <button class="glass-btn glass-btn-primary" style="width: 90px; height: 50px; font-size: 12px;" onclick="simulateUrlParse()">
+            Parse ✨
+          </button>
+        </div>
+
+        <!-- Presets pills -->
+        <div style="display: flex; gap: 6px; overflow-x: auto; margin-bottom: 16px; padding-bottom: 4px;">
+          <span style="font-size: 11px; color: var(--cyan); background: rgba(0,240,255,0.1); border: 1px solid rgba(0,240,255,0.3); padding: 4px 10px; border-radius: 12px; cursor: pointer;" onclick="loadPreset('IKEA KIVIK 3-Seat', 'sofa', 90, 38, 33)">IKEA KIVIK Sofa</span>
+          <span style="font-size: 11px; color: var(--cyan); background: rgba(0,240,255,0.1); border: 1px solid rgba(0,240,255,0.3); padding: 4px 10px; border-radius: 12px; cursor: pointer;" onclick="loadPreset('West Elm Dining Table', 'table', 72, 36, 30)">West Elm Table</span>
+          <span style="font-size: 11px; color: var(--cyan); background: rgba(0,240,255,0.1); border: 1px solid rgba(0,240,255,0.3); padding: 4px 10px; border-radius: 12px; cursor: pointer;" onclick="loadPreset('CB2 Bookshelf', 'shelf', 48, 16, 70)">CB2 Shelf</span>
+        </div>
+
+        <!-- 3D Proxy Preview Card -->
+        <div class="glass-card" style="margin-bottom: 16px; text-align: center;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 12px; font-weight: 700; color: var(--text-secondary);">3D Proxy Shape Preview</span>
+            <span class="status-pill fits">High Confidence</span>
+          </div>
+          <canvas id="proxyPreviewCanvas" width="280" height="130" style="display: inline-block;"></canvas>
+          <p id="previewDimText" style="font-size: 15px; font-weight: 800; color: var(--cyan); margin-top: 6px;">84"L x 36"W x 32"H</p>
+        </div>
+
+        <!-- Category selector -->
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Category Proxy Shape</label>
+        <div style="display: flex; gap: 8px; margin: 8px 0 16px 0;">
+          <button id="catSofa" class="glass-btn glass-btn-primary" style="flex: 1; height: 42px; font-size: 12px;" onclick="setCategory('sofa')">🛋️ Sofa</button>
+          <button id="catTable" class="glass-btn glass-btn-ghost" style="flex: 1; height: 42px; font-size: 12px;" onclick="setCategory('table')">🪑 Table</button>
+          <button id="catShelf" class="glass-btn glass-btn-ghost" style="flex: 1; height: 42px; font-size: 12px;" onclick="setCategory('shelf')">📚 Shelf</button>
+          <button id="catLamp" class="glass-btn glass-btn-ghost" style="flex: 1; height: 42px; font-size: 12px;" onclick="setCategory('lamp')">💡 Lamp</button>
+        </div>
+
+        <!-- Manual Fallback with L/W/H -->
+        <label style="font-size: 12px; font-weight: 600; color: var(--text-secondary);">Manual Dimensions (Inches)</label>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; margin-bottom: 20px;">
+          <div class="glass-card" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 13px; font-weight: 700;">Length (L)</span>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <button class="glass-btn glass-btn-ghost" style="width: 28px; height: 28px; padding: 0;" onclick="adjustDim('l', -2)">-</button>
+              <span id="valLength" style="font-size: 16px; font-weight: 800; color: var(--cyan); width: 44px; text-align: center;">84"</span>
+              <button class="glass-btn glass-btn-ghost" style="width: 28px; height: 28px; padding: 0;" onclick="adjustDim('l', 2)">+</button>
+            </div>
+          </div>
+          <div class="glass-card" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 13px; font-weight: 700;">Width (W)</span>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <button class="glass-btn glass-btn-ghost" style="width: 28px; height: 28px; padding: 0;" onclick="adjustDim('w', -2)">-</button>
+              <span id="valWidth" style="font-size: 16px; font-weight: 800; color: var(--cyan); width: 44px; text-align: center;">36"</span>
+              <button class="glass-btn glass-btn-ghost" style="width: 28px; height: 28px; padding: 0;" onclick="adjustDim('w', 2)">+</button>
+            </div>
+          </div>
+          <div class="glass-card" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 13px; font-weight: 700;">Height (H)</span>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <button class="glass-btn glass-btn-ghost" style="width: 28px; height: 28px; padding: 0;" onclick="adjustDim('h', -2)">-</button>
+              <span id="valHeight" style="font-size: 16px; font-weight: 800; color: var(--cyan); width: 44px; text-align: center;">32"</span>
+              <button class="glass-btn glass-btn-ghost" style="width: 28px; height: 28px; padding: 0;" onclick="adjustDim('h', 2)">+</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="glass-btn glass-btn-primary" style="width: 100%;" onclick="openOnlineFitCheck()">
+          Check Fit in My Home
+        </button>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 7: OFFLINE ENTRY CHOICE (Prompt 5) -->
+      <!-- ============================================== -->
+      <div id="viewOfflineEntry" class="screen-view">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px;">
+          <button class="glass-btn glass-btn-ghost" style="width: 36px; height: 36px; border-radius: 50%; padding: 0;" onclick="switchScreen('viewHome')">←</button>
+          <h2 style="font-size: 18px; font-weight: 800;">In-Store Fit Check</h2>
+        </div>
+
+        <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">How would you like to measure this item?</h3>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 24px;">Choose the fastest lookup method or scan directly with spatial camera.</p>
+
+        <!-- Option 1: Barcode / QR (Prompt 5) -->
+        <div class="glass-card" style="margin-bottom: 14px; display: flex; gap: 16px; align-items: center;" onclick="switchScreen('viewBarcodeResult')">
+          <div class="icon-box cyan" style="font-size: 26px;">🏷️</div>
+          <div>
+            <h4 style="font-size: 16px; font-weight: 800;">Scan Barcode / QR</h4>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Fastest — looks up official dimensions</p>
+          </div>
+          <span style="margin-left: auto; color: var(--text-tertiary);">›</span>
+        </div>
+
+        <!-- Option 2: Camera Scan (Prompt 5) -->
+        <div class="glass-card" style="margin-bottom: 24px; display: flex; gap: 16px; align-items: center;" onclick="startInStoreCamera()">
+          <div class="icon-box purple" style="font-size: 26px;">📹</div>
+          <div>
+            <h4 style="font-size: 16px; font-weight: 800;">Scan with Camera</h4>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">Measures the real object in front of you</p>
+          </div>
+          <span style="margin-left: auto; color: var(--text-tertiary);">›</span>
+        </div>
+
+        <!-- Recommendation Note Below (Prompt 5 requirement) -->
+        <div class="glass-card" style="background: rgba(255, 179, 0, 0.12); border-color: rgba(255, 179, 0, 0.35);">
+          <div style="display: flex; gap: 12px;">
+            <span style="font-size: 22px; color: var(--status-amber)">💡</span>
+            <div>
+              <h5 style="font-size: 13px; font-weight: 800; color: var(--status-amber);">Pro Recommendation</h5>
+              <p style="font-size: 12px; color: #E8EAEE; margin-top: 4px; line-height: 1.4;">
+                We recommend camera scan for furniture and large items, since listed sizes are often the packaging, not the product.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 8: BARCODE RESULT (Prompt 6) -->
+      <!-- ============================================== -->
+      <div id="viewBarcodeResult" class="screen-view">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button class="glass-btn glass-btn-ghost" style="width: 36px; height: 36px; border-radius: 50%; padding: 0;" onclick="switchScreen('viewOfflineEntry')">←</button>
+            <h2 style="font-size: 18px; font-weight: 800;">Barcode Scan Result</h2>
+          </div>
+          <button class="glass-btn glass-btn-ghost" style="height: 32px; font-size: 10px; padding: 0 8px;" onclick="toggleBarcodeDemoState()">
+            Toggle State
+          </button>
+        </div>
+
+        <!-- STATE A: Amber packaging confidence flag -->
+        <div id="barcodeStateAmber">
+          <!-- Amber Banner (Prompt 6) -->
+          <div class="glass-card" style="background: var(--status-amber-bg); border-color: rgba(255, 179, 0, 0.5); margin-bottom: 16px;">
+            <div style="display: flex; gap: 12px; align-items: flex-start;">
+              <span style="font-size: 22px; color: var(--status-amber)">⚠️</span>
+              <div>
+                <h4 style="font-size: 14px; font-weight: 800; color: var(--status-amber);">
+                  May be packaging size — confirm with camera scan?
+                </h4>
+                <p style="font-size: 11px; color: #D5D9E4; margin-top: 4px; line-height: 1.35;">
+                  Barcode catalog lists exterior shipping carton specifications. Direct camera scan guarantees true fit.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product Details -->
+          <div class="glass-card" style="text-align: center; margin-bottom: 24px;">
+            <div style="font-size: 48px; margin-bottom: 8px;">🪑</div>
+            <h3 style="font-size: 17px; font-weight: 800;">Nordic Lounge Armchair</h3>
+            <p style="font-size: 15px; font-weight: 800; color: var(--cyan); margin: 6px 0;">34"L x 32"W x 36"H</p>
+            <p style="font-size: 11px; color: var(--text-tertiary);">UPC: 7318540023412 • Packaging Confidence</p>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <button class="glass-btn glass-btn-primary" onclick="startInStoreCamera()">
+              Scan to Verify (Recommended)
+            </button>
+            <button class="glass-btn glass-btn-ghost" onclick="loadAndOpenViewer('Nordic Lounge Armchair', 'Living Room', 34, 32, 36, 'sofa', 0.2, -0.3, 0)">
+              Use these dimensions anyway
+            </button>
+          </div>
+        </div>
+
+        <!-- STATE B: Red No Dimensions Found (Prompt 6) -->
+        <div id="barcodeStateRed" style="display: none;">
+          <!-- Red Banner (Prompt 6) -->
+          <div class="glass-card" style="background: var(--status-red-bg); border-color: rgba(255, 59, 48, 0.5); margin-bottom: 24px; text-align: center; padding: 24px 16px;">
+            <span style="font-size: 38px; color: var(--status-red);">🚫</span>
+            <h4 style="font-size: 16px; font-weight: 800; color: #FF6B6B; margin-top: 10px;">
+              No dimensions found for this barcode
+            </h4>
+            <p style="font-size: 12px; color: #E8EAEE; margin-top: 6px; line-height: 1.4;">
+              This store barcode is not yet registered in our dimensional database. Scan the physical item directly with your camera.
+            </p>
+          </div>
+
+          <!-- Sole Primary Action (Prompt 6 requirement) -->
+          <button class="glass-btn glass-btn-primary" style="width: 100%;" onclick="startInStoreCamera()">
+            Scan with Camera Instead
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 9: IN-STORE CAMERA CAPTURE (Prompt 7) -->
+      <!-- ============================================== -->
+      <div id="viewInStoreCamera" class="screen-view">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <button class="glass-btn glass-btn-ghost" style="width: 36px; height: 36px; border-radius: 50%; padding: 0;" onclick="switchScreen('viewOfflineEntry')">✕</button>
+          <!-- Coverage Indicator (Prompt 7) -->
+          <span class="status-pill" style="background: rgba(0,0,0,0.6); border-color: var(--cyan); color: var(--cyan);">
+            Orbit: <span id="orbitDegText">120°</span> / 180°
+          </span>
+        </div>
+
+        <!-- Instruction Copy (Prompt 7) -->
+        <div class="glass-card" style="padding: 10px 16px; text-align: center; margin-bottom: 12px;">
+          <p style="font-size: 13px; font-weight: 700; color: #fff;">
+            🔄 Quick scan: walk halfway around the item
+          </p>
+        </div>
+
+        <!-- Camera Viewport with Close Orbit Guide Overlay (Prompt 7) -->
+        <div class="ar-viewport" style="height: 480px; position: relative;">
+          <canvas id="orbitCanvas"></canvas>
+          
+          <!-- Estimating Size Loading Overlay (Prompt 7) -->
+          <div id="estimatingOverlay" style="display: none; position: absolute; inset: 0; background: rgba(8,9,14,0.85); backdrop-filter: blur(12px); flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+            <div style="width: 48px; height: 48px; border: 3px solid var(--cyan); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            <h3 style="font-size: 17px; font-weight: 800; margin-top: 16px;">Estimating size...</h3>
+            <p style="font-size: 11px; color: var(--cyan); margin-top: 4px;">Computing 3D bounding box & surface clearances</p>
+          </div>
+        </div>
+
+        <div style="margin-top: 14px;">
+          <button class="glass-btn glass-btn-primary" style="width: 100%;" onclick="captureInStoreScan()">
+            Capture Measurements
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 10: CONFIRM DIMENSIONS (Prompt 7) -->
+      <!-- ============================================== -->
+      <div id="viewConfirmDims" class="screen-view">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+          <button class="glass-btn glass-btn-ghost" style="width: 36px; height: 36px; border-radius: 50%; padding: 0;" onclick="switchScreen('viewInStoreCamera')">←</button>
+          <h2 style="font-size: 18px; font-weight: 800;">Confirm Dimensions</h2>
+        </div>
+
+        <!-- Measured Directly — High Confidence Badge (Prompt 7) -->
+        <div style="text-align: center; margin-bottom: 16px;">
+          <span class="status-pill fits" style="font-size: 12px; padding: 6px 16px;">
+            ✓ Measured directly — high confidence
+          </span>
+        </div>
+
+        <!-- 3D Proxy card -->
+        <div class="glass-card" style="text-align: center; margin-bottom: 16px;">
+          <div style="font-size: 44px;">🪑</div>
+          <h3 style="font-size: 17px; font-weight: 800; margin-top: 6px;">Showroom Lounge Armchair</h3>
+          <p id="confirmDimHeader" style="font-size: 15px; font-weight: 800; color: var(--cyan); margin-top: 4px;">35"L x 33"W x 34"H</p>
+        </div>
+
+        <!-- Editable Length/Width/Height fields (Prompt 7) -->
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+          <div class="glass-card" style="padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; font-weight: 700;">Length</span>
+            <input type="number" id="editL" class="glass-input" value="35" style="width: 80px; height: 38px; text-align: center; font-weight: 800; color: var(--cyan);">
+          </div>
+          <div class="glass-card" style="padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; font-weight: 700;">Width</span>
+            <input type="number" id="editW" class="glass-input" value="33" style="width: 80px; height: 38px; text-align: center; font-weight: 800; color: var(--cyan);">
+          </div>
+          <div class="glass-card" style="padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 13px; font-weight: 700;">Height</span>
+            <input type="number" id="editH" class="glass-input" value="34" style="width: 80px; height: 38px; text-align: center; font-weight: 800; color: var(--cyan);">
+          </div>
+        </div>
+
+        <button class="glass-btn glass-btn-primary" style="width: 100%;" onclick="openConfirmedInStoreFit()">
+          Check Fit in My Home
+        </button>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 11: PLACEMENT VIEWER (Prompt 8) -->
+      <!-- ============================================== -->
+      <div id="viewPlacement" class="screen-view">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <button class="glass-btn glass-btn-ghost" style="width: 36px; height: 36px; border-radius: 50%; padding: 0;" onclick="switchScreen('viewHome')">←</button>
+          
+          <!-- Room Selector Pill -->
+          <div class="glass-card" style="padding: 6px 14px; border-radius: 20px; display: flex; align-items: center; gap: 6px; cursor: pointer;" onclick="cycleActiveRoom()">
+            <span style="font-size: 12px; color: var(--cyan);">🏠</span>
+            <span id="activeRoomLabel" style="font-size: 12px; font-weight: 700;">Living Room</span>
+            <span style="font-size: 10px; color: var(--text-tertiary);">▼</span>
+          </div>
+
+          <button class="glass-btn glass-btn-ghost" style="width: 36px; height: 36px; border-radius: 50%; padding: 0;" title="Reset Center" onclick="resetPlacementPos()">⌖</button>
+        </div>
+
+        <!-- Top Fit-Result Banner with 3 States (Prompt 8 requirement) -->
+        <div id="fitBanner" class="glass-card" style="margin-bottom: 10px; padding: 12px 16px; transition: all 0.2s;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span id="fitBannerIcon" style="font-size: 22px;">✓</span>
+            <div>
+              <h4 id="fitBannerTitle" style="font-size: 15px; font-weight: 800; color: var(--status-green);">Fits comfortably</h4>
+              <p id="fitBannerSub" style="font-size: 12px; color: #fff; font-weight: 600;">+24.5" clearance to nearest boundary</p>
+            </div>
+          </div>
+          <!-- Low Confidence Warning Indicator (Prompt 8) -->
+          <div id="bannerLowConfidence" style="display: none; margin-top: 8px; padding: 4px 8px; background: rgba(255,179,0,0.2); border-radius: 8px; font-size: 10px; color: var(--status-amber);">
+            ⚠️ Unverified barcode size — actual room clearance may differ
+          </div>
+        </div>
+
+        <!-- 3D Interactive Room Canvas (Prompt 8 requirement) -->
+        <div class="placement-viewport" id="placementViewport">
+          <canvas id="roomCanvas"></canvas>
+          <div style="position: absolute; top: 12px; left: 12px; font-size: 11px; color: var(--text-tertiary); background: rgba(0,0,0,0.5); padding: 4px 8px; border-radius: 8px;">
+            🖐️ Drag anywhere to reposition
+          </div>
+        </div>
+
+        <!-- Bottom Controls Bar (Prompt 8 requirement) -->
+        <div class="glass-card" style="margin-top: 10px; padding: 14px;">
+          <!-- Item info -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span id="viewerItemTitle" style="font-size: 13px; font-weight: 700;">Kivik 3-Seat Sofa</span>
+            <span id="viewerItemDim" style="font-size: 12px; font-weight: 800; color: var(--cyan);">90" x 38"</span>
+          </div>
+
+          <!-- Rotation Slider & Snap (Prompt 8) -->
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+            <span style="font-size: 14px;">🔄</span>
+            <span id="rotDegLabel" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; width: 34px;">0°</span>
+            <input type="range" id="rotSlider" class="glass-slider" min="0" max="360" value="0" oninput="onRotationChange(this.value)">
+            <button class="glass-btn glass-btn-ghost" style="height: 28px; padding: 0 8px; font-size: 11px;" onclick="snapRotate(90)">+90°</button>
+          </div>
+
+          <!-- Save to Wishlist Button (Prompt 8) -->
+          <button class="glass-btn glass-btn-primary" style="width: 100%; height: 46px;" onclick="saveCurrentToWishlist()">
+            Save to Wishlist
+          </button>
+        </div>
+      </div>
+
+      <!-- ============================================== -->
+      <!-- SCREEN 12: WISHLIST (Prompt 9) -->
+      <!-- ============================================== -->
+      <div id="viewWishlist" class="screen-view">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <button class="glass-btn glass-btn-ghost" style="width: 36px; height: 36px; border-radius: 50%; padding: 0;" onclick="switchScreen('viewHome')">←</button>
+            <h2 style="font-size: 18px; font-weight: 800;">Saved Fit-Checks</h2>
+          </div>
+          <span style="font-size: 12px; color: var(--cyan); font-weight: 700;" id="wishlistFilteredCount">4 Items</span>
+        </div>
+
+        <!-- Filter Row 1: By Fit Result (Prompt 9 requirement) -->
+        <div style="display: flex; gap: 6px; overflow-x: auto; margin-bottom: 8px;">
+          <span id="filterAll" class="status-pill" style="background: rgba(0,240,255,0.2); color: var(--cyan); border-color: var(--cyan); cursor: pointer;" onclick="setFitFilter('all')">All Results</span>
+          <span id="filterFits" class="status-pill" style="background: rgba(255,255,255,0.08); color: var(--text-secondary); cursor: pointer;" onclick="setFitFilter('fits')">Fits</span>
+          <span id="filterTight" class="status-pill" style="background: rgba(255,255,255,0.08); color: var(--text-secondary); cursor: pointer;" onclick="setFitFilter('tight')">Tight</span>
+          <span id="filterWontFit" class="status-pill" style="background: rgba(255,255,255,0.08); color: var(--text-secondary); cursor: pointer;" onclick="setFitFilter('wontFit')">Won't Fit</span>
+        </div>
+
+        <!-- Filter Row 2: By Room (Prompt 9 requirement) -->
+        <div style="display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px;">
+          <span id="rfAll" style="font-size: 11px; padding: 4px 10px; border-radius: 12px; background: rgba(157,78,221,0.2); color: #D08CFF; border: 1px solid rgba(157,78,221,0.4); cursor: pointer;" onclick="setRoomFilter('all')">All Rooms</span>
+          <span id="rfLiving" style="font-size: 11px; padding: 4px 10px; border-radius: 12px; background: rgba(255,255,255,0.08); color: var(--text-tertiary); cursor: pointer;" onclick="setRoomFilter('Living Room')">Living Room</span>
+          <span id="rfBedroom" style="font-size: 11px; padding: 4px 10px; border-radius: 12px; background: rgba(255,255,255,0.08); color: var(--text-tertiary); cursor: pointer;" onclick="setRoomFilter('Primary Bedroom')">Bedroom</span>
+          <span id="rfStudy" style="font-size: 11px; padding: 4px 10px; border-radius: 12px; background: rgba(255,255,255,0.08); color: var(--text-tertiary); cursor: pointer;" onclick="setRoomFilter('Study')">Study</span>
+        </div>
+
+        <!-- Wishlist Cards List (Prompt 9 requirement) -->
+        <div id="wishlistContainer" style="display: flex; flex-direction: column; gap: 12px;">
+          <!-- Dynamically Rendered Cards with Tap to Restore -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Frosted Bottom Navigation Bar -->
+    <div class="glass-bottom-bar">
+      <div id="tabHome" class="bottom-tab active" onclick="switchScreen('viewHome')">
+        <span>🏠</span>
+        <span>Home</span>
+      </div>
+      <div id="tabRooms" class="bottom-tab" onclick="switchScreen('viewMyHome')">
+        <span>🚪</span>
+        <span>Rooms</span>
+      </div>
+      <div id="tabWishlist" class="bottom-tab" onclick="switchScreen('viewWishlist')">
+        <span>🔖</span>
+        <span>Wishlist</span>
+      </div>
+      <div id="tabScan" class="bottom-tab" onclick="switchScreen('viewScanIntro')">
+        <span>📐</span>
+        <span>Scan</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Global State Engine
+    const state = {
+      rooms: [
+        { id: 'r1', name: 'Living Room', len: 16.5, wid: 14.0, ceil: 9.0, doors: [{ wall: 2, offset: 0.25 }] },
+        { id: 'r2', name: 'Primary Bedroom', len: 13.0, wid: 11.5, ceil: 8.5, doors: [{ wall: 3, offset: 0.2 }] },
+        { id: 'r3', name: 'Study', len: 11.0, wid: 9.5, ceil: 8.5, doors: [{ wall: 0, offset: 0.5 }] }
+      ],
+      activeRoomIndex: 0,
+      activeProduct: {
+        title: 'Kivik 3-Seat Sectional Sofa',
+        category: 'sofa',
+        lenIn: 90,
+        widIn: 38,
+        heiIn: 33,
+        source: 'Online',
+        confidence: 'high'
+      },
+      placement: {
+        posX: 0.0,
+        posY: 0.0,
+        rotDeg: 0
+      },
+      wishlist: [
+        { id: 'w1', title: 'Kivik 3-Seat Sectional Sofa', room: 'Living Room', category: 'sofa', lenIn: 90, widIn: 38, heiIn: 33, source: 'Online', status: 'fits', clearance: 18.5, confidence: 'high', posX: 0.1, posY: 0.2, rot: 0, date: '2 days ago' },
+        { id: 'w2', title: 'Oak Dining Table 6-Seater', room: 'Living Room', category: 'table', lenIn: 72, widIn: 36, heiIn: 30, source: 'Offline', status: 'tight', clearance: 4.2, confidence: 'amber', posX: -0.4, posY: 0.35, rot: 90, date: '3 days ago' },
+        { id: 'w3', title: 'Velvet King Lounge Chair', room: 'Study', category: 'sofa', lenIn: 52, widIn: 46, heiIn: 38, source: 'Offline', status: 'wontFit', clearance: 0, reason: 'Blocks doorway', confidence: 'high', posX: 0.0, posY: -0.7, rot: 0, date: 'Yesterday' },
+        { id: 'w4', title: 'Industrial 5-Tier Bookshelf', room: 'Primary Bedroom', category: 'shelf', lenIn: 48, widIn: 16, heiIn: 70, source: 'Online', status: 'fits', clearance: 22.0, confidence: 'high', posX: 0.65, posY: -0.1, rot: 90, date: '5 days ago' }
+      ],
+      currentFitFilter: 'all',
+      currentRoomFilter: 'all',
+      barcodeIsMatch: true
+    };
+
+    // Navigation Screen Switcher
+    function switchScreen(screenId) {
+      document.querySelectorAll('.screen-view').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById(screenId);
+      if (target) target.classList.add('active');
+
+      // Update Bottom Bar Tabs
+      document.querySelectorAll('.bottom-tab').forEach(t => t.classList.remove('active'));
+      if (screenId === 'viewHome') document.getElementById('tabHome').classList.add('active');
+      else if (screenId === 'viewMyHome') document.getElementById('tabRooms').classList.add('active');
+      else if (screenId === 'viewWishlist') {
+        document.getElementById('tabWishlist').classList.add('active');
+        renderWishlist();
+      } else if (screenId === 'viewScanIntro' || screenId === 'viewArScan') {
+        document.getElementById('tabScan').classList.add('active');
+      }
+
+      if (screenId === 'viewPlacement') {
+        renderPlacementRoom();
+      }
+      if (screenId === 'viewOnline') {
+        renderProxyPreview();
+      }
+      if (screenId === 'viewScanIntro') {
+        startDiagramAnim();
+      }
+    }
+
+    // ==========================================
+    // PROMPT 2: SCANNING SIMULATION
+    // ==========================================
+    let arCoverage = 24;
+    let arTimer = null;
+    let taggedDoors = 1;
+
+    function startArScanning() {
+      switchScreen('viewArScan');
+      arCoverage = 20;
+      taggedDoors = 1;
+      document.getElementById('taggedDoorsCount').innerText = taggedDoors;
+      
+      clearInterval(arTimer);
+      arTimer = setInterval(() => {
+        if (arCoverage < 92) {
+          arCoverage += 3;
+          document.getElementById('arCoverageText').innerText = arCoverage + '%';
+          document.getElementById('arCoverageCircle').innerText = arCoverage + '%';
+          drawArMesh();
+        }
+      }, 400);
+      drawArMesh();
+    }
+
+    function tagDoorwayAr(e) {
+      taggedDoors++;
+      document.getElementById('taggedDoorsCount').innerText = taggedDoors;
+      drawArMesh();
+    }
+
+    function finishArScan() {
+      clearInterval(arTimer);
+      switchScreen('viewRoomSummary');
+      drawSummaryMesh();
+    }
+
+    function saveRoomToLibrary(addAnother) {
+      const name = document.getElementById('summaryRoomName').value || 'Scanned Room';
+      state.rooms.push({
+        id: 'r_' + Date.now(),
+        name: name,
+        len: 16.5,
+        wid: 14.0,
+        ceil: 9.0,
+        doors: [{ wall: 2, offset: 0.3 }]
+      });
+      document.getElementById('homeStatusTitle').innerText = `Your Home: ${state.rooms.length} rooms scanned`;
+
+      if (addAnother) {
+        startArScanning();
+      } else {
+        switchScreen('viewMyHome');
+      }
+    }
+
+    // AR Mesh Canvas Painter
+    function drawArMesh() {
+      const cvs = document.getElementById('arCanvas');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      cvs.width = cvs.clientWidth;
+      cvs.height = cvs.clientHeight;
+
+      ctx.fillStyle = '#08090E';
+      ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+      // Floor plane
+      const p1 = { x: cvs.width * 0.2, y: cvs.height * 0.45 };
+      const p2 = { x: cvs.width * 0.8, y: cvs.height * 0.45 };
+      const p3 = { x: cvs.width * 0.95, y: cvs.height * 0.85 };
+      const p4 = { x: cvs.width * 0.05, y: cvs.height * 0.85 };
+
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.lineTo(p3.x, p3.y);
+      ctx.lineTo(p4.x, p4.y);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.08)';
+      ctx.fill();
+
+      // Grid mesh
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.35)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 5; i++) {
+        const t = i / 5;
+        ctx.beginPath();
+        ctx.moveTo(p1.x + (p2.x - p1.x)*t, p1.y + (p2.y - p1.y)*t);
+        ctx.lineTo(p4.x + (p3.x - p4.x)*t, p4.y + (p3.y - p4.y)*t);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(p1.x + (p4.x - p1.x)*t, p1.y + (p4.y - p1.y)*t);
+        ctx.lineTo(p2.x + (p3.x - p2.x)*t, p2.y + (p3.y - p2.y)*t);
+        ctx.stroke();
+      }
+
+      // Doorway pins
+      for (let d = 0; d < taggedDoors; d++) {
+        const dx = cvs.width * (0.3 + d * 0.3);
+        const dy = cvs.height * 0.85;
+        ctx.fillStyle = '#FFB300';
+        ctx.beginPath();
+        ctx.arc(dx, dy, 7, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+
+    // Walking Diagram Canvas
+    let diagAngle = 0;
+    function startDiagramAnim() {
+      const cvs = document.getElementById('diagramCanvas');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      
+      function render() {
+        if (!document.getElementById('viewScanIntro').classList.contains('active')) return;
+        diagAngle += 0.02;
+        ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+        const cx = cvs.width / 2;
+        const cy = cvs.height / 2;
+        const rw = 220;
+        const rh = 160;
+
+        // Room rect
+        ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cx - rw/2, cy - rh/2, rw, rh);
+
+        // Person position along perimeter
+        const peri = 2 * (rw + rh);
+        const cur = (diagAngle * 70) % peri;
+        let px, py;
+        if (cur < rw) { px = cx - rw/2 + cur; py = cy - rh/2; }
+        else if (cur < rw + rh) { px = cx + rw/2; py = cy - rh/2 + (cur - rw); }
+        else if (cur < 2*rw + rh) { px = cx + rw/2 - (cur - rw - rh); py = cy + rh/2; }
+        else { px = cx - rw/2; py = cy + rh/2 - (cur - 2*rw - rh); }
+
+        // Radar beam
+        const grad = ctx.createRadialGradient(px, py, 5, px, py, 50);
+        grad.addColorStop(0, 'rgba(0, 240, 255, 0.4)');
+        grad.addColorStop(1, 'rgba(0, 240, 255, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(px, py, 50, 0, Math.PI*2);
+        ctx.fill();
+
+        // Person dot
+        ctx.fillStyle = '#00F0FF';
+        ctx.beginPath();
+        ctx.arc(px, py, 6, 0, Math.PI*2);
+        ctx.fill();
+
+        requestAnimationFrame(render);
+      }
+      render();
+    }
+
+    function drawSummaryMesh() {
+      const cvs = document.getElementById('summaryMiniCanvas');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+      ctx.strokeStyle = '#00F0FF';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(40, 20, cvs.width - 80, cvs.height - 40);
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.1)';
+      ctx.fillRect(40, 20, cvs.width - 80, cvs.height - 40);
+    }
+
+    // ==========================================
+    // PROMPT 4: ONLINE SHOPPING CONTROLS
+    // ==========================================
+    function setCategory(cat) {
+      state.activeProduct.category = cat;
+      ['catSofa', 'catTable', 'catShelf', 'catLamp'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.className = 'glass-btn glass-btn-ghost';
+      });
+      const activeBtn = document.getElementById('cat' + cat.charAt(0).toUpperCase() + cat.slice(1));
+      if (activeBtn) activeBtn.className = 'glass-btn glass-btn-primary';
+      renderProxyPreview();
+    }
+
+    function adjustDim(dim, delta) {
+      if (dim === 'l') state.activeProduct.lenIn = Math.max(12, state.activeProduct.lenIn + delta);
+      if (dim === 'w') state.activeProduct.widIn = Math.max(12, state.activeProduct.widIn + delta);
+      if (dim === 'h') state.activeProduct.heiIn = Math.max(12, state.activeProduct.heiIn + delta);
+
+      document.getElementById('valLength').innerText = state.activeProduct.lenIn + '"';
+      document.getElementById('valWidth').innerText = state.activeProduct.widIn + '"';
+      document.getElementById('valHeight').innerText = state.activeProduct.heiIn + '"';
+      document.getElementById('previewDimText').innerText = `${state.activeProduct.lenIn}"L x ${state.activeProduct.widIn}"W x ${state.activeProduct.heiIn}"H`;
+      renderProxyPreview();
+    }
+
+    function loadPreset(title, cat, l, w, h) {
+      state.activeProduct.title = title;
+      state.activeProduct.lenIn = l;
+      state.activeProduct.widIn = w;
+      state.activeProduct.heiIn = h;
+      setCategory(cat);
+      adjustDim('l', 0);
+    }
+
+    function simulateUrlParse() {
+      const btn = event.target;
+      btn.innerText = 'Parsing...';
+      setTimeout(() => {
+        btn.innerText = 'Parse ✨';
+        loadPreset('IKEA KIVIK 3-Seat Sofa', 'sofa', 90, 38, 33);
+      }, 700);
+    }
+
+    function renderProxyPreview() {
+      const cvs = document.getElementById('proxyPreviewCanvas');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+      const cx = cvs.width / 2;
+      const cy = cvs.height * 0.65;
+      const scale = 0.8;
+      const l = state.activeProduct.lenIn * scale;
+      const w = state.activeProduct.widIn * scale;
+      const h = state.activeProduct.heiIn * scale * 0.7;
+
+      ctx.strokeStyle = '#00F0FF';
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.2)';
+      ctx.lineWidth = 1.5;
+
+      // Isometric box
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - h);
+      ctx.lineTo(cx + l*0.5, cy - h - l*0.25);
+      ctx.lineTo(cx + (l - w)*0.5, cy - h - (l + w)*0.25);
+      ctx.lineTo(cx - w*0.5, cy - h - w*0.25);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Front faces
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + l*0.5, cy - l*0.25);
+      ctx.lineTo(cx + l*0.5, cy - h - l*0.25);
+      ctx.lineTo(cx, cy - h);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.12)';
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function openOnlineFitCheck() {
+      state.activeProduct.source = 'Online';
+      state.activeProduct.confidence = 'high';
+      loadAndOpenViewer(state.activeProduct.title, state.rooms[state.activeRoomIndex].name, state.activeProduct.lenIn, state.activeProduct.widIn, state.activeProduct.heiIn, state.activeProduct.category, 0, 0, 0);
+    }
+
+    // ==========================================
+    // PROMPT 6 & 7: BARCODE & IN-STORE CAMERA
+    // ==========================================
+    function toggleBarcodeDemoState() {
+      state.barcodeIsMatch = !state.barcodeIsMatch;
+      document.getElementById('barcodeStateAmber').style.display = state.barcodeIsMatch ? 'block' : 'none';
+      document.getElementById('barcodeStateRed').style.display = state.barcodeIsMatch ? 'none' : 'block';
+    }
+
+    let orbitDeg = 30;
+    let orbitTimer = null;
+    function startInStoreCamera() {
+      switchScreen('viewInStoreCamera');
+      orbitDeg = 30;
+      clearInterval(orbitTimer);
+      orbitTimer = setInterval(() => {
+        if (orbitDeg < 178) {
+          orbitDeg += 3;
+          document.getElementById('orbitDegText').innerText = orbitDeg + '°';
+          drawOrbitGuide();
+        }
+      }, 250);
+      drawOrbitGuide();
+    }
+
+    function drawOrbitGuide() {
+      const cvs = document.getElementById('orbitCanvas');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      cvs.width = cvs.clientWidth;
+      cvs.height = cvs.clientHeight;
+
+      ctx.fillStyle = '#08090D';
+      ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+      const cx = cvs.width / 2;
+      const cy = cvs.height / 2;
+
+      // Elliptical Orbit Track
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 120, 60, 0, 0, Math.PI*2);
+      ctx.stroke();
+
+      // Coverage Arc
+      ctx.strokeStyle = '#00F0FF';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 120, 60, 0, 0, (orbitDeg / 180) * Math.PI);
+      ctx.stroke();
+
+      // Target Reticle
+      ctx.strokeStyle = '#00F0FF';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(cx - 40, cy - 40, 80, 80);
+    }
+
+    function captureInStoreScan() {
+      clearInterval(orbitTimer);
+      document.getElementById('estimatingOverlay').style.display = 'flex';
+      setTimeout(() => {
+        document.getElementById('estimatingOverlay').style.display = 'none';
+        switchScreen('viewConfirmDims');
+      }, 1200);
+    }
+
+    function openConfirmedInStoreFit() {
+      const l = parseFloat(document.getElementById('editL').value) || 35;
+      const w = parseFloat(document.getElementById('editW').value) || 33;
+      const h = parseFloat(document.getElementById('editH').value) || 34;
+      state.activeProduct = {
+        title: 'Showroom Lounge Armchair',
+        category: 'sofa',
+        lenIn: l,
+        widIn: w,
+        heiIn: h,
+        source: 'Offline',
+        confidence: 'high'
+      };
+      loadAndOpenViewer('Showroom Lounge Armchair', state.rooms[state.activeRoomIndex].name, l, w, h, 'sofa', 0, 0, 0);
+    }
+
+    // ==========================================
+    // PROMPT 8: 3D PLACEMENT & FIT ENGINE
+    // ==========================================
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+
+    function initCanvasDrag() {
+      const cvs = document.getElementById('placementViewport');
+      cvs.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+      });
+      window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dx = (e.clientX - dragStartX) / 160;
+        const dy = (e.clientY - dragStartY) / 160;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        state.placement.posX = Math.max(-0.85, Math.min(0.85, state.placement.posX + dx));
+        state.placement.posY = Math.max(-0.85, Math.min(0.85, state.placement.posY + dy));
+        renderPlacementRoom();
+      });
+      window.addEventListener('mouseup', () => isDragging = false);
+    }
+
+    function loadAndOpenViewer(title, roomName, l, w, h, cat, x, y, rot) {
+      state.activeProduct = {
+        title: title,
+        category: cat,
+        lenIn: l,
+        widIn: w,
+        heiIn: h,
+        source: 'Online',
+        confidence: 'high'
+      };
+      state.placement.posX = x;
+      state.placement.posY = y;
+      state.placement.rotDeg = rot;
+      
+      const rIdx = state.rooms.findIndex(r => r.name === roomName);
+      if (rIdx !== -1) state.activeRoomIndex = rIdx;
+
+      document.getElementById('viewerItemTitle').innerText = title;
+      document.getElementById('viewerItemDim').innerText = `${l}" x ${w}"`;
+      document.getElementById('activeRoomLabel').innerText = state.rooms[state.activeRoomIndex].name;
+      document.getElementById('rotSlider').value = rot;
+      document.getElementById('rotDegLabel').innerText = rot + '°';
+
+      switchScreen('viewPlacement');
+    }
+
+    function cycleActiveRoom() {
+      state.activeRoomIndex = (state.activeRoomIndex + 1) % state.rooms.length;
+      document.getElementById('activeRoomLabel').innerText = state.rooms[state.activeRoomIndex].name;
+      renderPlacementRoom();
+    }
+
+    function onRotationChange(val) {
+      state.placement.rotDeg = parseInt(val);
+      document.getElementById('rotDegLabel').innerText = val + '°';
+      renderPlacementRoom();
+    }
+
+    function snapRotate(step) {
+      state.placement.rotDeg = (state.placement.rotDeg + step) % 360;
+      document.getElementById('rotSlider').value = state.placement.rotDeg;
+      document.getElementById('rotDegLabel').innerText = state.placement.rotDeg + '°';
+      renderPlacementRoom();
+    }
+
+    function resetPlacementPos() {
+      state.placement.posX = 0;
+      state.placement.posY = 0;
+      state.placement.rotDeg = 0;
+      document.getElementById('rotSlider').value = 0;
+      document.getElementById('rotDegLabel').innerText = '0°';
+      renderPlacementRoom();
+    }
+
+    // Real-Time Collision Engine & 3D Isometric Renderer
+    function renderPlacementRoom() {
+      const cvs = document.getElementById('roomCanvas');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      cvs.width = cvs.clientWidth;
+      cvs.height = cvs.clientHeight;
+
+      const room = state.rooms[state.activeRoomIndex];
+      const prod = state.activeProduct;
+
+      // Real-time Fit Check Collision Logic
+      const roomWIn = room.wid * 12;
+      const roomLIn = room.len * 12;
+      const halfRoomX = roomWIn / 2;
+      const halfRoomY = roomLIn / 2;
+
+      const cxIn = state.placement.posX * halfRoomX;
+      const cyIn = state.placement.posY * halfRoomY;
+      const halfPW = prod.widIn / 2;
+      const halfPL = prod.lenIn / 2;
+
+      // Clearance to walls
+      const clWest = (cxIn - (-halfRoomX)) - halfPW;
+      const clEast = (halfRoomX - cxIn) - halfPW;
+      const clSouth = (cyIn - (-halfRoomY)) - halfPL;
+      const clNorth = (halfRoomY - cyIn) - halfPL;
+      const minWallCl = Math.min(clWest, clEast, clSouth, clNorth);
+
+      // Check door block
+      let blocksDoor = false;
+      if (cyIn < -halfRoomY + 36 && Math.abs(cxIn) < 36) {
+        blocksDoor = true;
+      }
+
+      // Update Banner UI
+      const banner = document.getElementById('fitBanner');
+      const title = document.getElementById('fitBannerTitle');
+      const sub = document.getElementById('fitBannerSub');
+      const icon = document.getElementById('fitBannerIcon');
+
+      let isCollision = false;
+      let isTight = false;
+
+      if (blocksDoor) {
+        isCollision = true;
+        banner.style.background = 'var(--status-red-bg)';
+        banner.style.borderColor = 'rgba(255,59,48,0.7)';
+        title.innerText = "Won't fit here";
+        title.style.color = 'var(--status-red)';
+        sub.innerText = "Blocks South doorway passage";
+        icon.innerText = "✕";
+        icon.style.color = 'var(--status-red)';
+      } else if (minWallCl < 0) {
+        isCollision = true;
+        banner.style.background = 'var(--status-red-bg)';
+        banner.style.borderColor = 'rgba(255,59,48,0.7)';
+        title.innerText = "Won't fit here";
+        title.style.color = 'var(--status-red)';
+        sub.innerText = "Collides with room wall boundary";
+        icon.innerText = "✕";
+        icon.style.color = 'var(--status-red)';
+      } else if (minWallCl < 7) {
+        isTight = true;
+        banner.style.background = 'var(--status-amber-bg)';
+        banner.style.borderColor = 'rgba(255,179,0,0.7)';
+        title.innerText = "Tight fit";
+        title.style.color = 'var(--status-amber)';
+        sub.innerText = `Tight clearance: ${minWallCl.toFixed(1)}" to wall`;
+        icon.innerText = "⚠️";
+        icon.style.color = 'var(--status-amber)';
+      } else {
+        banner.style.background = 'var(--status-green-bg)';
+        banner.style.borderColor = 'rgba(0,230,118,0.7)';
+        title.innerText = "Fits comfortably";
+        title.style.color = 'var(--status-green)';
+        sub.innerText = `+${minWallCl.toFixed(1)}" clearance to nearest boundary`;
+        icon.innerText = "✓";
+        icon.style.color = 'var(--status-green)';
+      }
+
+      // Draw 3D Isometric Room
+      ctx.fillStyle = '#0D0E15';
+      ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+      const viewCX = cvs.width / 2;
+      const viewCY = cvs.height * 0.52;
+      const rScale = (cvs.width * 0.6) / 16;
+      const rW = room.wid * rScale;
+      const rL = room.len * rScale;
+      const wallH = room.ceil * rScale * 0.4;
+
+      // 4 Floor points
+      const pN = { x: viewCX, y: viewCY - (rL + rW) * 0.25 };
+      const pE = { x: viewCX + rW * 0.86, y: viewCY + (rW - rL) * 0.25 };
+      const pS = { x: viewCX, y: viewCY + (rL + rW) * 0.25 };
+      const pW = { x: viewCX - rL * 0.86, y: viewCY + (rL - rW) * 0.25 };
+
+      // Floor fill
+      ctx.beginPath();
+      ctx.moveTo(pN.x, pN.y);
+      ctx.lineTo(pE.x, pE.y);
+      ctx.lineTo(pS.x, pS.y);
+      ctx.lineTo(pW.x, pW.y);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0, 240, 255, 0.08)';
+      ctx.fill();
+
+      // Floor grid
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 4; i++) {
+        const t = i / 4;
+        ctx.beginPath();
+        ctx.moveTo(pN.x + (pE.x - pN.x)*t, pN.y + (pE.y - pN.y)*t);
+        ctx.lineTo(pW.x + (pS.x - pW.x)*t, pW.y + (pS.y - pW.y)*t);
+        ctx.stroke();
+      }
+
+      // Walls
+      ctx.strokeStyle = 'rgba(0, 240, 255, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(pW.x, pW.y - wallH);
+      ctx.lineTo(pN.x, pN.y - wallH);
+      ctx.lineTo(pE.x, pE.y - wallH);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(pN.x, pN.y); ctx.lineTo(pN.x, pN.y - wallH); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(pW.x, pW.y); ctx.lineTo(pW.x, pW.y - wallH); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(pE.x, pE.y); ctx.lineTo(pE.x, pE.y - wallH); ctx.stroke();
+
+      // Floor perimeter
+      ctx.strokeStyle = '#00F0FF';
+      ctx.strokeRect ? '' : null;
+      ctx.beginPath();
+      ctx.moveTo(pN.x, pN.y); ctx.lineTo(pE.x, pE.y); ctx.lineTo(pS.x, pS.y); ctx.lineTo(pW.x, pW.y); ctx.closePath();
+      ctx.stroke();
+
+      // Doorway arch on South wall
+      const dStart = { x: pS.x - 20, y: pS.y - 5 };
+      const dEnd = { x: pS.x + 20, y: pS.y + 5 };
+      ctx.strokeStyle = '#FFB300';
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(dStart.x, dStart.y); ctx.lineTo(dEnd.x, dEnd.y); ctx.stroke();
+
+      // 3D Product model placement
+      const posX = state.placement.posX;
+      const posY = state.placement.posY;
+      const prodX = viewCX + (posX * rW * 0.45 * 0.86) - (posY * rL * 0.45 * 0.86);
+      const prodY = viewCY + (posX * rW * 0.45 * 0.25) + (posY * rL * 0.45 * 0.25);
+
+      const pBoxW = (prod.widIn / 12) * rScale * 0.7;
+      const pBoxL = (prod.lenIn / 12) * rScale * 0.7;
+      const pBoxH = (prod.heiIn / 12) * rScale * 0.4;
+
+      // Prompt 8: "semi-transparent when overlapping something"
+      const alpha = isCollision ? 0.35 : 0.85;
+      const boxColor = isCollision ? '#FF3B30' : (isTight ? '#FFB300' : '#00F0FF');
+
+      ctx.save();
+      ctx.translate(prodX, prodY);
+      ctx.rotate((state.placement.rotDeg * Math.PI) / 180);
+
+      // Shaded 3D Box
+      ctx.fillStyle = boxColor;
+      ctx.globalAlpha = alpha * 0.4;
+      ctx.fillRect(-pBoxW/2, -pBoxL/2, pBoxW, pBoxL);
+
+      ctx.strokeStyle = boxColor;
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-pBoxW/2, -pBoxL/2, pBoxW, pBoxL);
+
+      if (isCollision) {
+        ctx.fillStyle = '#FF3B30';
+        ctx.beginPath();
+        ctx.arc(0, 0, 10, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+
+    function saveCurrentToWishlist() {
+      const p = state.activeProduct;
+      const r = state.rooms[state.activeRoomIndex];
+      state.wishlist.unshift({
+        id: 'w_' + Date.now(),
+        title: p.title,
+        room: r.name,
+        category: p.category,
+        lenIn: p.lenIn,
+        widIn: p.widIn,
+        heiIn: p.heiIn,
+        source: p.source,
+        status: document.getElementById('fitBannerTitle').innerText.includes('Fits') ? 'fits' : (document.getElementById('fitBannerTitle').innerText.includes('Tight') ? 'tight' : 'wontFit'),
+        clearance: 14.5,
+        confidence: p.confidence,
+        posX: state.placement.posX,
+        posY: state.placement.posY,
+        rot: state.placement.rotDeg,
+        date: 'Just now'
+      });
+      document.getElementById('wishlistCount').innerText = state.wishlist.length;
+      alert('✓ Saved to Wishlist with 3D coordinates & room twin!');
+    }
+
+    // ==========================================
+    // PROMPT 9: WISHLIST SCREEN & FILTERS
+    // ==========================================
+    function setFitFilter(status) {
+      state.currentFitFilter = status;
+      ['filterAll', 'filterFits', 'filterTight', 'filterWontFit'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.style.background = 'rgba(255,255,255,0.08)';
+          el.style.color = 'var(--text-secondary)';
+          el.style.borderColor = 'transparent';
+        }
+      });
+      const active = document.getElementById('filter' + status.charAt(0).toUpperCase() + status.slice(1));
+      if (active) {
+        active.style.background = 'rgba(0,240,255,0.2)';
+        active.style.color = 'var(--cyan)';
+        active.style.borderColor = 'var(--cyan)';
+      }
+      renderWishlist();
+    }
+
+    function setRoomFilter(room) {
+      state.currentRoomFilter = room;
+      renderWishlist();
+    }
+
+    function renderWishlist() {
+      const container = document.getElementById('wishlistContainer');
+      if (!container) return;
+
+      const filtered = state.wishlist.filter(item => {
+        if (state.currentFitFilter !== 'all' && item.status !== state.currentFitFilter) return false;
+        if (state.currentRoomFilter !== 'all' && item.room !== state.currentRoomFilter) return false;
+        return true;
+      });
+
+      document.getElementById('wishlistFilteredCount').innerText = filtered.length + ' Items';
+
+      container.innerHTML = filtered.map(item => `
+        <div class="glass-card" onclick="loadAndOpenViewer('${item.title}', '${item.room}', ${item.lenIn}, ${item.widIn}, ${item.heiIn}, '${item.category}', ${item.posX}, ${item.posY}, ${item.rot})">
+          <div style="display: flex; gap: 14px; align-items: center;">
+            <div style="width: 64px; height: 64px; border-radius: 14px; background: #141522; border: 1px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; font-size: 26px;">
+              ${item.category === 'sofa' ? '🛋️' : (item.category === 'table' ? '🪑' : '📚')}
+            </div>
+            <div style="flex: 1;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 10px; font-weight: 700; color: ${item.source === 'Online' ? 'var(--cyan)' : '#D08CFF'};">${item.source.toUpperCase()}</span>
+                <span style="font-size: 10px; color: var(--text-tertiary);">${item.date}</span>
+              </div>
+              <h4 style="font-size: 14px; font-weight: 800; margin-top: 2px;">${item.title}</h4>
+              <p style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">in ${item.room} • ${item.lenIn}"L x ${item.widIn}"W</p>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.08);">
+            <span class="status-pill ${item.status === 'fits' ? 'fits' : (item.status === 'tight' ? 'tight' : 'wont-fit')}">
+              ${item.status === 'fits' ? '✓ Fits' : (item.status === 'tight' ? '⚠️ Tight' : '✕ Won\'t Fit')}
+            </span>
+            <span style="font-size: 11px; color: var(--cyan); font-weight: 700;">Reopen in 3D →</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Initialize listeners
+    window.addEventListener('DOMContentLoaded', () => {
+      initCanvasDrag();
+      renderPlacementRoom();
+    });
+  </script>
+</body>
+</html>

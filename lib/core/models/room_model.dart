@@ -83,4 +83,68 @@ class RoomModel {
       thumbnailSeed: thumbnailSeed ?? this.thumbnailSeed,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'length_ft': lengthFt,
+        'width_ft': widthFt,
+        'ceiling_height_ft': ceilingHeightFt,
+        'scanned_date': scannedDate.toIso8601String(),
+        'doorways': doorways.map((d) => d.toJson()).toList(),
+        'thumbnail_seed': thumbnailSeed,
+      };
+
+  factory RoomModel.fromJson(Map<String, dynamic> json) {
+    List<DoorwayMarker> parsedDoorways = [];
+    if (json['doorways'] is List) {
+      parsedDoorways = (json['doorways'] as List)
+          .map((d) => DoorwayMarker.fromJson(Map<String, dynamic>.from(d as Map)))
+          .toList();
+    }
+
+    double length = 14.0;
+    double width = 12.0;
+    double ceiling = 9.0;
+
+    if (json['length_ft'] != null) {
+      length = (json['length_ft'] as num).toDouble();
+    } else if (json['dimensions'] is Map) {
+      final dim = json['dimensions'] as Map;
+      length = (dim['length_ft'] as num?)?.toDouble() ??
+               (dim['length'] as num?)?.toDouble() ?? 14.0;
+    }
+
+    if (json['width_ft'] != null) {
+      width = (json['width_ft'] as num).toDouble();
+    } else if (json['dimensions'] is Map) {
+      final dim = json['dimensions'] as Map;
+      width = (dim['width_ft'] as num?)?.toDouble() ??
+              (dim['width'] as num?)?.toDouble() ?? 12.0;
+    }
+
+    if (json['ceiling_height_ft'] != null) {
+      ceiling = (json['ceiling_height_ft'] as num).toDouble();
+    } else if (json['dimensions'] is Map) {
+      final dim = json['dimensions'] as Map;
+      ceiling = (dim['ceiling_height_ft'] as num?)?.toDouble() ??
+                (dim['ceiling_height'] as num?)?.toDouble() ??
+                (dim['height_ft'] as num?)?.toDouble() ?? 9.0;
+    }
+
+    return RoomModel(
+      id: json['id'].toString(),
+      name: json['name'] as String? ?? 'Room',
+      lengthFt: length,
+      widthFt: width,
+      ceilingHeightFt: ceiling,
+      scannedDate: json['scanned_date'] != null
+          ? DateTime.parse(json['scanned_date'] as String)
+          : (json['created_at'] != null
+              ? DateTime.parse(json['created_at'] as String)
+              : DateTime.now()),
+      doorways: parsedDoorways,
+      thumbnailSeed: (json['thumbnail_seed'] as num?)?.toInt() ?? 1,
+    );
+  }
 }

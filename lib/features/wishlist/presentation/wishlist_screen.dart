@@ -100,7 +100,39 @@ class _WishlistScreenState extends State<WishlistScreen> {
                           itemCount: filteredItems.length,
                           itemBuilder: (context, index) {
                             final record = filteredItems[index];
-                            return _buildWishlistCard(context, record);
+                            return Dismissible(
+                              key: ValueKey(record.id),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 20),
+                                margin: const EdgeInsets.only(bottom: 14),
+                                decoration: BoxDecoration(
+                                  color: const Color(0x33FF3B30),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: const Color(0x66FF3B30)),
+                                ),
+                                child: const Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Color(0xFFFF5252),
+                                  size: 24,
+                                ),
+                              ),
+                              onDismissed: (_) {
+                                widget.state.deleteFitCheck(record.id);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    backgroundColor: const Color(0xFF1E293B),
+                                    content: Text(
+                                      'Removed "${record.product.title}" from saved checks',
+                                      style: AppTypography.bodySmall,
+                                    ),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                              child: _buildWishlistCard(context, record),
+                            );
                           },
                         ),
                 ),

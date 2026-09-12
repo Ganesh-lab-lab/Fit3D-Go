@@ -15,6 +15,8 @@ import '../../online_shopping/presentation/online_product_screen.dart';
 import '../../rooms/presentation/my_home_screen.dart';
 import '../../scan_room/presentation/scan_intro_screen.dart';
 import '../../wishlist/presentation/wishlist_screen.dart';
+import '../../../core/services/supabase_service.dart';
+import '../../../core/utils/uuid_util.dart';
 
 class HomeScreen extends StatefulWidget {
   final RoomFitState state;
@@ -132,49 +134,68 @@ class _HomeScreenState extends State<HomeScreen> {
     final rooms = widget.state.rooms;
     final wishlist = widget.state.wishlist;
 
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 10, 20, 110),
-      children: [
-        // Prompt 1: Top Status Card
-        _buildHomeStatusCard(rooms),
-        const SizedBox(height: 24),
+    return RefreshIndicator(
+      color: AppColors.primaryCyan,
+      backgroundColor: const Color(0xFF14141E),
+      onRefresh: () => widget.state.loadFromSupabase(),
+      child: Column(
+        children: [
+          if (widget.state.isLoading)
+            const LinearProgressIndicator(
+              minHeight: 2,
+              color: AppColors.primaryCyan,
+              backgroundColor: Colors.transparent,
+            ),
+          Expanded(
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 110),
+              children: [
+                // Prompt 1: Top Status Card
+                _buildHomeStatusCard(rooms),
+                const SizedBox(height: 24),
 
-        // Prompt 1: Two Large Equal Glass Cards
-        _buildShoppingOptionsGrid(),
-        const SizedBox(height: 28),
+                // Prompt 1: Two Large Equal Glass Cards
+                _buildShoppingOptionsGrid(),
+                const SizedBox(height: 28),
 
-        // Quick Access: Saved Rooms Preview
-        _buildSectionHeader(
-          title: 'Saved Rooms',
-          subtitle: '${rooms.length} configured',
-          actionText: 'Manage',
-          onActionTap: () {
-            Navigator.of(context).push(
-              GlassPageRoute(page: MyHomeScreen(state: widget.state)),
-            );
-          },
-        ),
-        const SizedBox(height: 12),
-        _buildSavedRoomsHorizontal(rooms),
-        const SizedBox(height: 28),
+                // Quick Access: Saved Rooms Preview
+                _buildSectionHeader(
+                  title: 'Saved Rooms',
+                  subtitle: '${rooms.length} configured',
+                  actionText: 'Manage',
+                  onActionTap: () {
+                    Navigator.of(context).push(
+                      GlassPageRoute(page: MyHomeScreen(state: widget.state)),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildSavedRoomsHorizontal(rooms),
+                const SizedBox(height: 28),
 
-        // Quick Access: Recent Fit Checks
-        if (wishlist.isNotEmpty) ...[
-          _buildSectionHeader(
-            title: 'Recent Fit-Checks',
-            subtitle: '${wishlist.length} saved checks',
-            actionText: 'View All',
-            onActionTap: () {
-              Navigator.of(context).push(
-                GlassPageRoute(page: WishlistScreen(state: widget.state)),
-              );
-            },
+                // Quick Access: Recent Fit Checks
+                if (wishlist.isNotEmpty) ...[
+                  _buildSectionHeader(
+                    title: 'Recent Fit-Checks',
+                    subtitle: '${wishlist.length} saved checks',
+                    actionText: 'View All',
+                    onActionTap: () {
+                      Navigator.of(context).push(
+                        GlassPageRoute(page: WishlistScreen(state: widget.state)),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _buildRecentFitChecks(wishlist),
+                ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          _buildRecentFitChecks(wishlist),
         ],
-      ],
+      ),
     );
   }
 
@@ -679,6 +700,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showQuickSettingsSheet(BuildContext ctx) {
+    final user = SupabaseService.instance.currentUser;
+
     showModalBottomSheet(
       context: ctx,
       backgroundColor: const Color(0xFF14141E),
@@ -693,48 +716,85 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Quick Environment State', style: AppTypography.titleLarge),
-                const SizedBox(height: 8),
-                Text(
-                  'Switch between seed states to test various conditions',
-                  style: AppTypography.bodyMedium,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0x2200F0FF),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.person_rounded,
+                          color: AppColors.primaryCyan, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Account & Cloud Sync', style: AppTypography.titleMedium),
+                          Text(
+                            user?.email ?? 'Guest Session',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                const Divider(color: Color(0x22FFFFFF)),
                 ListTile(
-                  leading: const Icon(Icons.refresh, color: AppColors.primaryCyan),
-                  title: const Text('Reset Rooms to 3 (Default)'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.sync_rounded, color: AppColors.primaryCyan),
+                  title: const Text('Sync with Supabase'),
+                  subtitle: const Text('Reload rooms & wishlist from cloud'),
                   onTap: () {
                     Navigator.pop(c);
-                    widget.state.clearAllRooms();
-                    widget.state.addRoom(RoomModel(
-                      id: 'r1',
-                      name: 'Living Room',
-                      lengthFt: 16.5,
-                      widthFt: 14.0,
-                      scannedDate: DateTime.now(),
-                    ));
-                    widget.state.addRoom(RoomModel(
-                      id: 'r2',
-                      name: 'Primary Bedroom',
-                      lengthFt: 13.0,
-                      widthFt: 11.5,
-                      scannedDate: DateTime.now(),
-                    ));
-                    widget.state.addRoom(RoomModel(
-                      id: 'r3',
-                      name: 'Study',
-                      lengthFt: 11.0,
-                      widthFt: 9.5,
-                      scannedDate: DateTime.now(),
-                    ));
+                    widget.state.loadFromSupabase();
                   },
                 ),
                 ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.add_home_work_outlined, color: AppColors.textSecondary),
+                  title: const Text('Add Test Room to Cloud'),
+                  subtitle: const Text('Creates and saves a test room to Supabase'),
+                  onTap: () {
+                    Navigator.pop(c);
+                    final testRoom = RoomModel(
+                      id: UuidUtil.generate(),
+                      name: 'Living Room ${widget.state.rooms.length + 1}',
+                      lengthFt: 18.0,
+                      widthFt: 15.0,
+                      ceilingHeightFt: 9.5,
+                      scannedDate: DateTime.now(),
+                      thumbnailSeed: widget.state.rooms.length + 1,
+                    );
+                    widget.state.addRoom(testRoom);
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.delete_sweep, color: AppColors.statusAmber),
-                  title: const Text('Simulate 0 Rooms Scanned'),
+                  title: const Text('Clear All User Rooms'),
+                  subtitle: const Text('Deletes all rooms from Supabase for this user'),
                   onTap: () {
                     Navigator.pop(c);
                     widget.state.clearAllRooms();
+                  },
+                ),
+                const SizedBox(height: 8),
+                const Divider(color: Color(0x22FFFFFF)),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.logout_rounded, color: Color(0xFFFF5252)),
+                  title: const Text('Sign Out', style: TextStyle(color: Color(0xFFFF5252))),
+                  onTap: () async {
+                    Navigator.pop(c);
+                    await SupabaseService.instance.signOut();
+                    widget.state.clearLocalState();
                   },
                 ),
               ],

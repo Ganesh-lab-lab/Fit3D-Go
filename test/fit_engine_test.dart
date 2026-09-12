@@ -1,9 +1,7 @@
-import 'dart:io';
-import '../lib/core/models/doorway_marker.dart' if (dart.library.io) '../lib/core/models/room_model.dart';
-import '../lib/core/models/fit_check_record.dart';
-import '../lib/core/models/product_model.dart';
-import '../lib/core/models/room_model.dart';
-import '../lib/core/state/fit_engine.dart';
+import 'package:roomfit/core/models/fit_check_record.dart';
+import 'package:roomfit/core/models/product_model.dart';
+import 'package:roomfit/core/models/room_model.dart';
+import 'package:roomfit/core/state/fit_engine.dart';
 
 void main() {
   print('=== ROOMFIT VERIFICATION SUITE ===');

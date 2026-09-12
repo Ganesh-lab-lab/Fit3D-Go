@@ -8,6 +8,7 @@ import '../../../core/theme/app_typography.dart';
 import '../../../core/theme/glass_button.dart';
 import '../../../core/theme/glass_card.dart';
 import '../../../core/theme/page_transitions.dart';
+import '../../../core/utils/uuid_util.dart';
 import 'scan_summary_screen.dart';
 
 class ScanArCameraScreen extends StatefulWidget {
@@ -330,7 +331,7 @@ class _ScanArCameraScreenState extends State<ScanArCameraScreen>
                   onPressed: () {
                     // Navigate to Screen 3: Room Summary
                     final detectedRoom = RoomModel(
-                      id: 'scanned_${DateTime.now().millisecondsSinceEpoch}',
+                      id: UuidUtil.generate(),
                       name: 'Scanned Room',
                       lengthFt: double.parse(_estLength.toStringAsFixed(1)),
                       widthFt: double.parse(_estWidth.toStringAsFixed(1)),

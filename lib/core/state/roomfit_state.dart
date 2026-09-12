@@ -1,8 +1,8 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../models/fit_check_record.dart';
 import '../models/product_model.dart';
 import '../models/room_model.dart';
+import '../services/supabase_service.dart';
 import 'fit_engine.dart';
 
 class RoomFitState extends ChangeNotifier {
@@ -12,23 +12,67 @@ class RoomFitState extends ChangeNotifier {
   RoomModel? _activeRoom;
   ProductModel? _activeProduct;
 
+  bool _isLoading = false;
+
   // Real-time placement state
   double _placementX = 0.0;
   double _placementY = 0.0;
   double _rotationDeg = 0.0;
 
   RoomFitState() {
-    _initSeedData();
+    // Initial state starts empty; data will be hydrated from Supabase when user logs in
   }
 
   List<RoomModel> get rooms => List.unmodifiable(_rooms);
   List<FitCheckRecord> get wishlist => List.unmodifiable(_wishlist);
-  RoomModel? get activeRoom => _activeRoom ?? (_rooms.isNotEmpty ? _rooms.first : null);
+  RoomModel? get activeRoom =>
+      _activeRoom ?? (_rooms.isNotEmpty ? _rooms.first : null);
   ProductModel? get activeProduct => _activeProduct;
+  bool get isLoading => _isLoading;
 
   double get placementX => _placementX;
   double get placementY => _placementY;
   double get rotationDeg => _rotationDeg;
+
+  /// Hydrate rooms and wishlist items from Supabase for the authenticated user
+  Future<void> loadFromSupabase() async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final fetchedRooms = await SupabaseService.instance.fetchRooms();
+      final fetchedChecks = await SupabaseService.instance.fetchFitChecks();
+
+      _rooms.clear();
+      _rooms.addAll(fetchedRooms);
+
+      _wishlist.clear();
+      _wishlist.addAll(fetchedChecks);
+
+      if (_rooms.isNotEmpty) {
+        if (_activeRoom == null || !_rooms.any((r) => r.id == _activeRoom?.id)) {
+          _activeRoom = _rooms.first;
+        }
+      } else {
+        _activeRoom = null;
+      }
+    } catch (e, stack) {
+      debugPrint('⚠️ RoomFitState.loadFromSupabase error: $e\n$stack');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Clears in-memory state on sign-out
+  void clearLocalState() {
+    _rooms.clear();
+    _wishlist.clear();
+    _activeRoom = null;
+    _activeProduct = null;
+    resetPlacement();
+    notifyListeners();
+  }
 
   void setActiveRoom(RoomModel room) {
     _activeRoom = room;
@@ -80,6 +124,11 @@ class RoomFitState extends ChangeNotifier {
     _rooms.add(room);
     _activeRoom = room;
     notifyListeners();
+
+    // Persist asynchronously to Supabase
+    SupabaseService.instance.insertRoom(room).catchError((e) {
+      debugPrint('⚠️ Error inserting room to Supabase: $e');
+    });
   }
 
   void updateRoom(RoomModel updated) {
@@ -90,6 +139,11 @@ class RoomFitState extends ChangeNotifier {
         _activeRoom = updated;
       }
       notifyListeners();
+
+      // Persist update to Supabase
+      SupabaseService.instance.insertRoom(updated).catchError((e) {
+        debugPrint('⚠️ Error updating room in Supabase: $e');
+      });
     }
   }
 
@@ -99,12 +153,22 @@ class RoomFitState extends ChangeNotifier {
       _activeRoom = _rooms.isNotEmpty ? _rooms.first : null;
     }
     notifyListeners();
+
+    // Delete from Supabase
+    SupabaseService.instance.deleteRoom(id).catchError((e) {
+      debugPrint('⚠️ Error deleting room from Supabase: $e');
+    });
   }
 
   void clearAllRooms() {
     _rooms.clear();
     _activeRoom = null;
     notifyListeners();
+
+    // Clear from Supabase
+    SupabaseService.instance.clearAllRooms().catchError((e) {
+      debugPrint('⚠️ Error clearing rooms from Supabase: $e');
+    });
   }
 
   void saveFitCheck(FitCheckRecord record) {
@@ -115,181 +179,41 @@ class RoomFitState extends ChangeNotifier {
       _wishlist.insert(0, record);
     }
     notifyListeners();
+
+    // Persist to Supabase
+    SupabaseService.instance.insertFitCheck(record).catchError((e) {
+      debugPrint('⚠️ Error saving fit check to Supabase: $e');
+    });
   }
 
   void deleteFitCheck(String id) {
     _wishlist.removeWhere((item) => item.id == id);
     notifyListeners();
+
+    // Delete from Supabase
+    SupabaseService.instance.deleteFitCheck(id).catchError((e) {
+      debugPrint('⚠️ Error deleting fit check from Supabase: $e');
+    });
   }
 
   void restoreFitCheck(FitCheckRecord record) {
     _activeProduct = record.product;
     final foundRoom = _rooms.firstWhere(
       (r) => r.id == record.roomId,
-      orElse: () => _rooms.isNotEmpty ? _rooms.first : RoomModel(
-        id: 'fallback',
-        name: record.roomName,
-        lengthFt: 14.0,
-        widthFt: 12.0,
-        scannedDate: DateTime.now(),
-      ),
+      orElse: () => _rooms.isNotEmpty
+          ? _rooms.first
+          : RoomModel(
+              id: 'fallback',
+              name: record.roomName,
+              lengthFt: 14.0,
+              widthFt: 12.0,
+              scannedDate: DateTime.now(),
+            ),
     );
     _activeRoom = foundRoom;
     _placementX = record.positionX;
     _placementY = record.positionY;
     _rotationDeg = record.rotationDeg;
     notifyListeners();
-  }
-
-  // Pre-populate 3 rooms and realistic wishlist items
-  void _initSeedData() {
-    final now = DateTime.now();
-
-    final livingRoom = RoomModel(
-      id: 'room_living',
-      name: 'Living Room',
-      lengthFt: 16.5,
-      widthFt: 14.0,
-      ceilingHeightFt: 9.0,
-      scannedDate: now.subtract(const Duration(days: 4)),
-      doorways: const [
-        DoorwayMarker(id: 'd1', wallIndex: 2, normalizedOffset: 0.25, widthFt: 3.2), // South entry
-        DoorwayMarker(id: 'd2', wallIndex: 1, normalizedOffset: 0.75, widthFt: 2.8), // East to balcony
-      ],
-      thumbnailSeed: 1,
-    );
-
-    final bedroom = RoomModel(
-      id: 'room_bedroom',
-      name: 'Primary Bedroom',
-      lengthFt: 13.0,
-      widthFt: 11.5,
-      ceilingHeightFt: 8.5,
-      scannedDate: now.subtract(const Duration(days: 7)),
-      doorways: const [
-        DoorwayMarker(id: 'd3', wallIndex: 3, normalizedOffset: 0.2, widthFt: 2.8), // West door
-      ],
-      thumbnailSeed: 2,
-    );
-
-    final study = RoomModel(
-      id: 'room_study',
-      name: 'Study / Home Office',
-      lengthFt: 11.0,
-      widthFt: 9.5,
-      ceilingHeightFt: 8.5,
-      scannedDate: now.subtract(const Duration(days: 12)),
-      doorways: const [
-        DoorwayMarker(id: 'd4', wallIndex: 0, normalizedOffset: 0.5, widthFt: 3.0), // North door
-      ],
-      thumbnailSeed: 3,
-    );
-
-    _rooms.addAll([livingRoom, bedroom, study]);
-    _activeRoom = livingRoom;
-
-    // Seed Wishlist
-    final sofaProduct = ProductModel(
-      id: 'prod_sofa_1',
-      title: 'Kivik 3-Seat Sectional Sofa',
-      source: ProductSource.online,
-      category: ProductCategory.sofa,
-      lengthIn: 90.0,
-      widthIn: 38.0,
-      heightIn: 33.0,
-      confidence: ConfidenceLevel.directHigh,
-      productUrl: 'https://ikea.com/item/kivik-3-seat-sofa',
-      createdAt: now.subtract(const Duration(days: 2)),
-    );
-
-    final diningTable = ProductModel(
-      id: 'prod_table_1',
-      title: 'Oak Dining Table 6-Seater',
-      source: ProductSource.offline,
-      category: ProductCategory.table,
-      lengthIn: 72.0,
-      widthIn: 36.0,
-      heightIn: 30.0,
-      confidence: ConfidenceLevel.packagingAmber,
-      barcode: '8901234567890',
-      createdAt: now.subtract(const Duration(days: 3)),
-    );
-
-    final shelfProduct = ProductModel(
-      id: 'prod_shelf_1',
-      title: 'Industrial 5-Tier Bookshelf',
-      source: ProductSource.online,
-      category: ProductCategory.shelf,
-      lengthIn: 48.0,
-      widthIn: 16.0,
-      heightIn: 70.0,
-      confidence: ConfidenceLevel.directHigh,
-      createdAt: now.subtract(const Duration(days: 5)),
-    );
-
-    final oversizeArmchair = ProductModel(
-      id: 'prod_chair_1',
-      title: 'Velvet King Lounge Chair',
-      source: ProductSource.offline,
-      category: ProductCategory.sofa,
-      lengthIn: 52.0,
-      widthIn: 46.0,
-      heightIn: 38.0,
-      confidence: ConfidenceLevel.directHigh,
-      createdAt: now.subtract(const Duration(days: 1)),
-    );
-
-    _wishlist.addAll([
-      FitCheckRecord(
-        id: 'fit_1',
-        product: sofaProduct,
-        roomId: livingRoom.id,
-        roomName: livingRoom.name,
-        positionX: 0.1,
-        positionY: 0.2,
-        rotationDeg: 0,
-        fitStatus: FitStatus.fits,
-        clearanceInches: 18.5,
-        timestamp: now.subtract(const Duration(days: 2)),
-      ),
-      FitCheckRecord(
-        id: 'fit_2',
-        product: diningTable,
-        roomId: livingRoom.id,
-        roomName: livingRoom.name,
-        positionX: -0.4,
-        positionY: 0.35,
-        rotationDeg: 90,
-        fitStatus: FitStatus.tight,
-        clearanceInches: 4.2,
-        obstructionReason: 'Tight clearance (4.2" to balcony door)',
-        timestamp: now.subtract(const Duration(days: 3)),
-      ),
-      FitCheckRecord(
-        id: 'fit_3',
-        product: oversizeArmchair,
-        roomId: study.id,
-        roomName: study.name,
-        positionX: 0.0,
-        positionY: -0.7,
-        rotationDeg: 0,
-        fitStatus: FitStatus.wontFit,
-        clearanceInches: 0.0,
-        obstructionReason: 'Blocks doorway',
-        timestamp: now.subtract(const Duration(days: 1)),
-      ),
-      FitCheckRecord(
-        id: 'fit_4',
-        product: shelfProduct,
-        roomId: bedroom.id,
-        roomName: bedroom.name,
-        positionX: 0.65,
-        positionY: -0.1,
-        rotationDeg: 90,
-        fitStatus: FitStatus.fits,
-        clearanceInches: 22.0,
-        timestamp: now.subtract(const Duration(days: 5)),
-      ),
-    ]);
   }
 }

@@ -1,26 +1,37 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../models/fit_check_record.dart';
+import '../models/product_model.dart';
+import '../models/room_model.dart';
+import '../utils/uuid_util.dart';
 
 /// Singleton wrapper around the Supabase client, exposing typed auth
-/// and CRUD helpers for the rooms, products, and fit_checks tables.
+/// and CRUD helpers for rooms, products, and fit-checks.
 class SupabaseService {
   SupabaseService._();
   static final SupabaseService instance = SupabaseService._();
 
-  SupabaseClient get _client => Supabase.instance.client;
+  SupabaseClient get client => Supabase.instance.client;
 
   // ---------------------------------------------------------------------------
   // Auth
   // ---------------------------------------------------------------------------
 
   /// The currently authenticated user, or `null` if signed out.
-  User? get currentUser => _client.auth.currentUser;
+  User? get currentUser => client.auth.currentUser;
+
+  /// Whether a user is currently logged in.
+  bool get isAuthenticated => currentUser != null;
+
+  /// Auth state change stream.
+  Stream<AuthState> get onAuthStateChange => client.auth.onAuthStateChange;
 
   /// Create a new account with email + password.
   Future<AuthResponse> signUp({
     required String email,
     required String password,
   }) async {
-    return _client.auth.signUp(email: email, password: password);
+    return client.auth.signUp(email: email, password: password);
   }
 
   /// Sign in with email + password.
@@ -28,155 +39,253 @@ class SupabaseService {
     required String email,
     required String password,
   }) async {
-    return _client.auth.signInWithPassword(email: email, password: password);
+    return client.auth.signInWithPassword(email: email, password: password);
   }
 
   /// Sign out the current user.
   Future<void> signOut() async {
-    await _client.auth.signOut();
+    await client.auth.signOut();
   }
 
   // ---------------------------------------------------------------------------
   // Rooms
   // ---------------------------------------------------------------------------
 
-  /// Insert a room row. Returns the inserted row as a map.
-  Future<Map<String, dynamic>> insertRoom({
-    required String id,
-    required String name,
-    required double lengthFt,
-    required double widthFt,
-    double ceilingHeightFt = 9.0,
-    required DateTime scannedDate,
-    List<Map<String, dynamic>> doorways = const [],
-    int thumbnailSeed = 1,
-  }) async {
-    final row = {
-      'id': id,
-      'name': name,
-      'length_ft': lengthFt,
-      'width_ft': widthFt,
-      'ceiling_height_ft': ceilingHeightFt,
-      'scanned_date': scannedDate.toIso8601String(),
-      'doorways': doorways,
-      'thumbnail_seed': thumbnailSeed,
-    };
-    final userId = currentUser?.id;
-    if (userId != null) row['user_id'] = userId;
+  /// Upsert a room row into Supabase. Compatible with both JSONB dimensions and flat columns.
+  Future<void> insertRoom(RoomModel room) async {
+    try {
+      final validId = UuidUtil.ensureValidUuid(room.id);
+      final userId = currentUser?.id;
 
-    final res = await _client.from('rooms').insert(row).select().single();
-    return res;
+      final row = <String, dynamic>{
+        'id': validId,
+        'name': room.name,
+        'dimensions': {
+          'length_ft': room.lengthFt,
+          'width_ft': room.widthFt,
+          'ceiling_height_ft': room.ceilingHeightFt,
+        },
+        'doorways': room.doorways.map((d) => d.toJson()).toList(),
+      };
+      if (userId != null) {
+        row['user_id'] = userId;
+      }
+
+      try {
+        await client.from('rooms').upsert(row);
+      } catch (e) {
+        // Fallback: try with flat columns in case schema migration has flat structure
+        final flatRow = Map<String, dynamic>.from(row);
+        flatRow['length_ft'] = room.lengthFt;
+        flatRow['width_ft'] = room.widthFt;
+        flatRow['ceiling_height_ft'] = room.ceilingHeightFt;
+        flatRow['thumbnail_seed'] = room.thumbnailSeed;
+        flatRow['scanned_date'] = room.scannedDate.toIso8601String();
+        await client.from('rooms').upsert(flatRow);
+      }
+    } catch (e, stack) {
+      debugPrint('⚠️ SupabaseService.insertRoom error: $e\n$stack');
+      rethrow;
+    }
   }
 
-  /// Fetch all rooms (optionally filtered by current user).
-  Future<List<Map<String, dynamic>>> fetchRooms() async {
-    final query = _client.from('rooms').select();
-    final userId = currentUser?.id;
-    if (userId != null) {
-      return await query.eq('user_id', userId);
+  /// Fetch all rooms for the current user.
+  Future<List<RoomModel>> fetchRooms() async {
+    try {
+      final userId = currentUser?.id;
+      var query = client.from('rooms').select();
+      if (userId != null) {
+        query = query.eq('user_id', userId);
+      }
+      final res = await query.order('created_at', ascending: false);
+      return (res as List)
+          .map((e) => RoomModel.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } catch (e, stack) {
+      debugPrint('⚠️ SupabaseService.fetchRooms error: $e\n$stack');
+      return [];
     }
-    return await query;
+  }
+
+  /// Delete a room by ID.
+  Future<void> deleteRoom(String id) async {
+    try {
+      final validId = UuidUtil.isValidUuid(id) ? id : null;
+      if (validId != null) {
+        await client.from('rooms').delete().eq('id', validId);
+      } else {
+        await client.from('rooms').delete().eq('id', id);
+      }
+    } catch (e, stack) {
+      debugPrint('⚠️ SupabaseService.deleteRoom error: $e\n$stack');
+      rethrow;
+    }
+  }
+
+  /// Delete all rooms for the current user.
+  Future<void> clearAllRooms() async {
+    try {
+      final userId = currentUser?.id;
+      if (userId != null) {
+        await client.from('rooms').delete().eq('user_id', userId);
+      }
+    } catch (e, stack) {
+      debugPrint('⚠️ SupabaseService.clearAllRooms error: $e\n$stack');
+      rethrow;
+    }
   }
 
   // ---------------------------------------------------------------------------
   // Products
   // ---------------------------------------------------------------------------
 
-  /// Insert a product row. Returns the inserted row as a map.
-  Future<Map<String, dynamic>> insertProduct({
-    required String id,
-    required String title,
-    required String source,
-    required String category,
-    required double lengthIn,
-    required double widthIn,
-    required double heightIn,
-    required String confidence,
-    String? imageUrl,
-    String? barcode,
-    String? productUrl,
-    required DateTime createdAt,
-  }) async {
-    final row = <String, dynamic>{
-      'id': id,
-      'title': title,
-      'source': source,
-      'category': category,
-      'length_in': lengthIn,
-      'width_in': widthIn,
-      'height_in': heightIn,
-      'confidence': confidence,
-      'image_url': imageUrl,
-      'barcode': barcode,
-      'product_url': productUrl,
-      'created_at': createdAt.toIso8601String(),
-    };
-    final userId = currentUser?.id;
-    if (userId != null) row['user_id'] = userId;
+  /// Upsert a product row into Supabase.
+  Future<void> insertProduct(ProductModel product) async {
+    try {
+      final validId = UuidUtil.ensureValidUuid(product.id);
+      final userId = currentUser?.id;
 
-    final res = await _client.from('products').insert(row).select().single();
-    return res;
+      final row = <String, dynamic>{
+        'id': validId,
+        'name': product.title,
+        'source': product.source.name,
+        'confidence': product.confidence.name,
+        'dimensions': {
+          'length_in': product.lengthIn,
+          'width_in': product.widthIn,
+          'height_in': product.heightIn,
+        },
+      };
+      if (userId != null) {
+        row['user_id'] = userId;
+      }
+
+      try {
+        await client.from('products').upsert(row);
+      } catch (e) {
+        // Fallback: try with flat columns
+        final flatRow = Map<String, dynamic>.from(row);
+        flatRow['title'] = product.title;
+        flatRow['category'] = product.category.name;
+        flatRow['length_in'] = product.lengthIn;
+        flatRow['width_in'] = product.widthIn;
+        flatRow['height_in'] = product.heightIn;
+        flatRow['image_url'] = product.imageUrl;
+        flatRow['barcode'] = product.barcode;
+        flatRow['product_url'] = product.productUrl;
+        await client.from('products').upsert(flatRow);
+      }
+    } catch (e, stack) {
+      debugPrint('⚠️ SupabaseService.insertProduct error: $e\n$stack');
+      rethrow;
+    }
   }
 
-  /// Fetch all products (optionally filtered by current user).
-  Future<List<Map<String, dynamic>>> fetchProducts() async {
-    final query = _client.from('products').select();
-    final userId = currentUser?.id;
-    if (userId != null) {
-      return await query.eq('user_id', userId);
+  /// Fetch all products for the current user.
+  Future<List<ProductModel>> fetchProducts() async {
+    try {
+      final userId = currentUser?.id;
+      var query = client.from('products').select();
+      if (userId != null) {
+        query = query.eq('user_id', userId);
+      }
+      final res = await query.order('created_at', ascending: false);
+      return (res as List)
+          .map((e) => ProductModel.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } catch (e, stack) {
+      debugPrint('⚠️ SupabaseService.fetchProducts error: $e\n$stack');
+      return [];
     }
-    return await query;
+  }
+
+  /// Delete a product by ID.
+  Future<void> deleteProduct(String id) async {
+    try {
+      await client.from('products').delete().eq('id', id);
+    } catch (e, stack) {
+      debugPrint('⚠️ SupabaseService.deleteProduct error: $e\n$stack');
+      rethrow;
+    }
   }
 
   // ---------------------------------------------------------------------------
-  // Fit Checks
+  // Fit Checks / Wishlist
   // ---------------------------------------------------------------------------
 
-  /// Insert a fit-check row. Returns the inserted row as a map.
-  Future<Map<String, dynamic>> insertFitCheck({
-    required String id,
-    required String productId,
-    required String roomId,
-    required String roomName,
-    double positionX = 0.0,
-    double positionY = 0.0,
-    double rotationDeg = 0.0,
-    required String fitStatus,
-    required double clearanceInches,
-    String? obstructionReason,
-    required DateTime timestamp,
-  }) async {
-    final row = <String, dynamic>{
-      'id': id,
-      'product_id': productId,
-      'room_id': roomId,
-      'room_name': roomName,
-      'position_x': positionX,
-      'position_y': positionY,
-      'rotation_deg': rotationDeg,
-      'fit_status': fitStatus,
-      'clearance_inches': clearanceInches,
-      'obstruction_reason': obstructionReason,
-      'timestamp': timestamp.toIso8601String(),
-    };
-    final userId = currentUser?.id;
-    if (userId != null) row['user_id'] = userId;
+  /// Upsert a fit-check record into Supabase. Also persists the embedded product.
+  Future<void> insertFitCheck(FitCheckRecord record) async {
+    try {
+      final validRecordId = UuidUtil.ensureValidUuid(record.id);
+      final validProductId = UuidUtil.ensureValidUuid(record.product.id);
+      final validRoomId = UuidUtil.ensureValidUuid(record.roomId);
+      final userId = currentUser?.id;
 
-    final res =
-        await _client.from('fit_checks').insert(row).select().single();
-    return res;
+      // Upsert product with matching UUID
+      await insertProduct(record.product.copyWith(id: validProductId));
+
+      final row = <String, dynamic>{
+        'id': validRecordId,
+        'product_id': validProductId,
+        'room_id': validRoomId,
+        'fit_status': record.fitStatus.name,
+      };
+      if (userId != null) {
+        row['user_id'] = userId;
+      }
+
+      try {
+        await client.from('fit_checks').upsert(row);
+      } catch (e) {
+        // Fallback: try with full metadata columns
+        final fullRow = Map<String, dynamic>.from(row);
+        fullRow['product_data'] = record.product.toJson();
+        fullRow['room_name'] = record.roomName;
+        fullRow['position_x'] = record.positionX;
+        fullRow['position_y'] = record.positionY;
+        fullRow['rotation_deg'] = record.rotationDeg;
+        fullRow['clearance_inches'] = record.clearanceInches;
+        fullRow['obstruction_reason'] = record.obstructionReason;
+        fullRow['timestamp'] = record.timestamp.toIso8601String();
+        await client.from('fit_checks').upsert(fullRow);
+      }
+    } catch (e, stack) {
+      debugPrint('⚠️ SupabaseService.insertFitCheck error: $e\n$stack');
+      rethrow;
+    }
   }
 
-  /// Fetch fit checks, optionally filtered by [roomId].
-  Future<List<Map<String, dynamic>>> fetchFitChecks({String? roomId}) async {
-    var query = _client.from('fit_checks').select();
-    final userId = currentUser?.id;
-    if (userId != null) {
-      query = query.eq('user_id', userId);
+  /// Fetch fit checks (wishlist), optionally filtered by [roomId].
+  Future<List<FitCheckRecord>> fetchFitChecks({String? roomId}) async {
+    try {
+      final userId = currentUser?.id;
+      var query = client.from('fit_checks').select();
+      if (userId != null) {
+        query = query.eq('user_id', userId);
+      }
+      if (roomId != null) {
+        final validRoomId = UuidUtil.isValidUuid(roomId) ? roomId : null;
+        if (validRoomId != null) {
+          query = query.eq('room_id', validRoomId);
+        }
+      }
+      final res = await query.order('created_at', ascending: false);
+      return (res as List)
+          .map((e) => FitCheckRecord.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } catch (e, stack) {
+      debugPrint('⚠️ SupabaseService.fetchFitChecks error: $e\n$stack');
+      return [];
     }
-    if (roomId != null) {
-      return await query.eq('room_id', roomId);
+  }
+
+  /// Delete a fit-check record by ID.
+  Future<void> deleteFitCheck(String id) async {
+    try {
+      await client.from('fit_checks').delete().eq('id', id);
+    } catch (e, stack) {
+      debugPrint('⚠️ SupabaseService.deleteFitCheck error: $e\n$stack');
+      rethrow;
     }
-    return await query;
   }
 }

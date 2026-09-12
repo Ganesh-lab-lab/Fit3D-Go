@@ -110,4 +110,72 @@ class ProductModel {
       createdAt: createdAt ?? this.createdAt,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'source': source.name,
+        'category': category.name,
+        'length_in': lengthIn,
+        'width_in': widthIn,
+        'height_in': heightIn,
+        'confidence': confidence.name,
+        'image_url': imageUrl,
+        'barcode': barcode,
+        'product_url': productUrl,
+        'created_at': createdAt.toIso8601String(),
+      };
+
+  factory ProductModel.fromJson(Map<String, dynamic> json) {
+    double l = 36.0;
+    double w = 24.0;
+    double h = 30.0;
+
+    if (json['length_in'] != null) {
+      l = (json['length_in'] as num).toDouble();
+    } else if (json['dimensions'] is Map) {
+      final dim = json['dimensions'] as Map;
+      l = (dim['length_in'] as num?)?.toDouble() ?? (dim['length'] as num?)?.toDouble() ?? 36.0;
+    }
+
+    if (json['width_in'] != null) {
+      w = (json['width_in'] as num).toDouble();
+    } else if (json['dimensions'] is Map) {
+      final dim = json['dimensions'] as Map;
+      w = (dim['width_in'] as num?)?.toDouble() ?? (dim['width'] as num?)?.toDouble() ?? 24.0;
+    }
+
+    if (json['height_in'] != null) {
+      h = (json['height_in'] as num).toDouble();
+    } else if (json['dimensions'] is Map) {
+      final dim = json['dimensions'] as Map;
+      h = (dim['height_in'] as num?)?.toDouble() ?? (dim['height'] as num?)?.toDouble() ?? 30.0;
+    }
+
+    return ProductModel(
+      id: json['id'].toString(),
+      title: json['title'] as String? ?? json['name'] as String? ?? 'Product',
+      source: ProductSource.values.firstWhere(
+        (e) => e.name == json['source'],
+        orElse: () => ProductSource.offline,
+      ),
+      category: ProductCategory.values.firstWhere(
+        (e) => e.name == json['category'],
+        orElse: () => ProductCategory.other,
+      ),
+      lengthIn: l,
+      widthIn: w,
+      heightIn: h,
+      confidence: ConfidenceLevel.values.firstWhere(
+        (e) => e.name == json['confidence'],
+        orElse: () => ConfidenceLevel.directHigh,
+      ),
+      imageUrl: json['image_url'] as String?,
+      barcode: json['barcode'] as String?,
+      productUrl: json['product_url'] as String?,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
+    );
+  }
 }

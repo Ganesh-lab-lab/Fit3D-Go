@@ -86,4 +86,60 @@ class FitCheckRecord {
       timestamp: timestamp ?? this.timestamp,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'product_id': product.id,
+        'product_data': product.toJson(),
+        'room_id': roomId,
+        'room_name': roomName,
+        'position_x': positionX,
+        'position_y': positionY,
+        'rotation_deg': rotationDeg,
+        'fit_status': fitStatus.name,
+        'clearance_inches': clearanceInches,
+        'obstruction_reason': obstructionReason,
+        'timestamp': timestamp.toIso8601String(),
+      };
+
+  factory FitCheckRecord.fromJson(Map<String, dynamic> json) {
+    ProductModel product;
+    if (json['product_data'] != null && json['product_data'] is Map) {
+      product = ProductModel.fromJson(
+        Map<String, dynamic>.from(json['product_data'] as Map),
+      );
+    } else {
+      // Fallback product if product_data was not saved
+      product = ProductModel(
+        id: json['product_id'] as String? ?? 'prod_unknown',
+        title: json['product_title'] as String? ?? 'Item',
+        source: ProductSource.offline,
+        category: ProductCategory.other,
+        lengthIn: 36.0,
+        widthIn: 24.0,
+        heightIn: 30.0,
+        confidence: ConfidenceLevel.directHigh,
+        createdAt: DateTime.now(),
+      );
+    }
+
+    return FitCheckRecord(
+      id: json['id'] as String,
+      product: product,
+      roomId: json['room_id'] as String,
+      roomName: json['room_name'] as String,
+      positionX: (json['position_x'] as num?)?.toDouble() ?? 0.0,
+      positionY: (json['position_y'] as num?)?.toDouble() ?? 0.0,
+      rotationDeg: (json['rotation_deg'] as num?)?.toDouble() ?? 0.0,
+      fitStatus: FitStatus.values.firstWhere(
+        (e) => e.name == json['fit_status'],
+        orElse: () => FitStatus.fits,
+      ),
+      clearanceInches: (json['clearance_inches'] as num?)?.toDouble() ?? 0.0,
+      obstructionReason: json['obstruction_reason'] as String?,
+      timestamp: json['timestamp'] != null
+          ? DateTime.parse(json['timestamp'] as String)
+          : DateTime.now(),
+    );
+  }
 }

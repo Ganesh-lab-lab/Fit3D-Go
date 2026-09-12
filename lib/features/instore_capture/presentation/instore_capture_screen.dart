@@ -406,21 +406,21 @@ class _InStoreCaptureScreenState extends State<InStoreCaptureScreen>
             const SizedBox(height: 20),
 
             // Editable Length, Width, Height fields
-            DimensionalInput(
+            DimensionalInputRow(
               label: 'Length',
-              initialInches: _capturedLengthIn,
+              valueInches: _capturedLengthIn,
               onChanged: (val) => setState(() => _capturedLengthIn = val),
             ),
             const SizedBox(height: 12),
-            DimensionalInput(
+            DimensionalInputRow(
               label: 'Width (Depth)',
-              initialInches: _capturedWidthIn,
+              valueInches: _capturedWidthIn,
               onChanged: (val) => setState(() => _capturedWidthIn = val),
             ),
             const SizedBox(height: 12),
-            DimensionalInput(
+            DimensionalInputRow(
               label: 'Height',
-              initialInches: _capturedHeightIn,
+              valueInches: _capturedHeightIn,
               onChanged: (val) => setState(() => _capturedHeightIn = val),
             ),
             const SizedBox(height: 28),

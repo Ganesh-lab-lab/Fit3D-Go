@@ -228,9 +228,9 @@ class _RoomSpatialPainter extends CustomPainter {
     final productCenter = Offset(prodFloorX, prodFloorY);
 
     // Product dimension in canvas scale
-    final pL = (product.lengthIn / 12.0) * roomScale;
-    final pW = (product.widthIn / 12.0) * roomScale;
-    final pH = (product.heightIn / 12.0) * roomScale * 0.5;
+    final prodL = (product.lengthIn / 12.0) * roomScale;
+    final prodW = (product.widthIn / 12.0) * roomScale;
+    final prodH = (product.heightIn / 12.0) * roomScale * 0.5;
 
     // Is there collision? Prompt 8: "semi-transparent when overlapping something"
     final bool isColliding = evaluation.status == FitStatus.wontFit;
@@ -255,7 +255,7 @@ class _RoomSpatialPainter extends CustomPainter {
       ..color = isColliding ? const Color(0x66FF3B30) : const Color(0x55000000)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
     canvas.drawOval(
-      Rect.fromCenter(center: productCenter, width: math.max(pL, pW) * 1.3, height: math.min(pL, pW) * 0.8),
+      Rect.fromCenter(center: productCenter, width: math.max(prodL, prodW) * 1.3, height: math.min(prodL, prodW) * 0.8),
       shadowPaint,
     );
 
@@ -263,9 +263,9 @@ class _RoomSpatialPainter extends CustomPainter {
     _draw3DProductModel(
       canvas: canvas,
       center: productCenter,
-      length: pL,
-      width: pW,
-      height: pH,
+      length: prodL,
+      width: prodW,
+      height: prodH,
       rotationDeg: rotationDeg,
       color: itemColor,
       opacity: itemOpacity,
@@ -277,9 +277,9 @@ class _RoomSpatialPainter extends CustomPainter {
       final warningPaint = Paint()
         ..color = AppColors.statusRed
         ..style = PaintingStyle.fill;
-      canvas.drawCircle(productCenter.translate(0, -pH - 16), 14, warningPaint);
+      canvas.drawCircle(productCenter.translate(0, -prodH - 16), 14, warningPaint);
       final whiteIcon = Paint()..color = Colors.white..strokeWidth = 2.5;
-      final cP = productCenter.translate(0, -pH - 16);
+      final cP = productCenter.translate(0, -prodH - 16);
       canvas.drawLine(cP.translate(0, -6), cP.translate(0, 2), whiteIcon);
       canvas.drawCircle(cP.translate(0, 6), 1.5, Paint()..color = Colors.white);
     }

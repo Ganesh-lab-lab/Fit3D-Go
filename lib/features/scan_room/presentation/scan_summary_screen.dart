@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../core/models/room_model.dart';
 import '../../../core/state/roomfit_state.dart';

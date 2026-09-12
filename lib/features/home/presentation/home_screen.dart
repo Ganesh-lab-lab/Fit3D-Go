@@ -706,21 +706,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   onTap: () {
                     Navigator.pop(c);
                     widget.state.clearAllRooms();
-                    widget.state.addRoom(const RoomModel(
+                    widget.state.addRoom(RoomModel(
                       id: 'r1',
                       name: 'Living Room',
                       lengthFt: 16.5,
                       widthFt: 14.0,
                       scannedDate: DateTime.now(),
                     ));
-                    widget.state.addRoom(const RoomModel(
+                    widget.state.addRoom(RoomModel(
                       id: 'r2',
                       name: 'Primary Bedroom',
                       lengthFt: 13.0,
                       widthFt: 11.5,
                       scannedDate: DateTime.now(),
                     ));
-                    widget.state.addRoom(const RoomModel(
+                    widget.state.addRoom(RoomModel(
                       id: 'r3',
                       name: 'Study',
                       lengthFt: 11.0,
